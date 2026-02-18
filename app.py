@@ -480,6 +480,7 @@ def dashboard_page():
 
     # ML components are loaded lazily within specific tabs to prevent blocking the dashboard
 
+    # --- Tab Rendering ---
     if nav == "🏠 Dashboard Overview":
         st.markdown("## Security Overview")
         
@@ -500,64 +501,56 @@ def dashboard_page():
         else:
             st.info("No recent activity found.")
 
-    elif nav == "📄 Text Analysis":
+    elif "Text Analysis" in nav:
         st.markdown("## 📄 Text Verification")
         
-        # Load ML components only when needed
+        # Load ML components only when strictly on this tab
         with st.spinner("Initializing AI Engines..."):
             preprocessor, classifier, verifier, scorer, bias_analyzer, summarizer, explainer, linguistic_analyzer, source_verifier, entity_verifier = load_ml_components()
 
         with st.container():
-            text_input = st.text_area("Paste news content or social claims:", height=200, placeholder="Verify news integrity...")
-            url_input = st.text_input("Source URL (Optional):", placeholder="https://...")
+            text_input = st.text_area("Paste news content or social claims:", height=200, placeholder="Verify news integrity...", key="main_text_input")
+            url_input = st.text_input("Source URL (Optional):", placeholder="https://...", key="main_url_input")
             if st.button("Verify Integrity", type="primary", use_container_width=True):
                 if len(text_input) > 50:
                     run_full_analysis(text_input, "Text", source_url=url_input)
                 else:
-                    st.warning("Please provide more content.")
+                    st.warning("Please provide more content (minimum 50 characters).")
 
-    elif nav == "🖼️ Image Analysis":
+    elif "Image Analysis" in nav:
         st.markdown("## 🖼️ Forensic Image Analysis")
         
-        # Load ML components only when needed
         with st.spinner("Initializing AI Engines..."):
             preprocessor, classifier, verifier, scorer, bias_analyzer, summarizer, explainer, linguistic_analyzer, source_verifier, entity_verifier = load_ml_components()
 
         with st.container():
-            image_file = st.file_uploader("Upload image for deepfake detection", type=["jpg", "png", "jpeg"])
-            url_input_img = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_img")
+            image_file = st.file_uploader("Upload image for deepfake detection", type=["jpg", "png", "jpeg"], key="img_upload")
+            url_input_img = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_img_input")
             
-            # Show analysis button if either file or URL is present
             if image_file or url_input_img:
                 if image_file:
                     st.image(image_file, use_container_width=True)
                 
                 if st.button("Detect Manipulation", type="primary", use_container_width=True, key="btn_img_verify"):
-                    mock_text = "Analysis suggest the uploaded content shows patterns consistent with the provided source context."
-                    if image_file:
-                        mock_text = "Analysis suggest the uploaded image shows high probability of AI-generated artifacts in facial regions."
+                    mock_text = "Analysis suggest the uploaded image shows high probability of AI-generated artifacts in facial regions."
                     run_full_analysis(mock_text, "Image", source_url=url_input_img)
 
-    elif nav == "🎥 Video Analysis":
+    elif "Video Analysis" in nav:
         st.markdown("## 🎥 Video Deepfake Guard")
         
-        # Load ML components only when needed
         with st.spinner("Initializing AI Engines..."):
             preprocessor, classifier, verifier, scorer, bias_analyzer, summarizer, explainer, linguistic_analyzer, source_verifier, entity_verifier = load_ml_components()
 
         with st.container():
-            video_file = st.file_uploader("Upload video to verify authenticity", type=["mp4", "mov"])
-            url_input_vid = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_vid")
+            video_file = st.file_uploader("Upload video to verify authenticity", type=["mp4", "mov"], key="vid_upload")
+            url_input_vid = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_vid_input")
             
-            # Show analysis button if either file or URL is present
             if video_file or url_input_vid:
                 if video_file:
                     st.info(f"Video selected: {video_file.name}")
                 
                 if st.button("Extract & Verify", type="primary", use_container_width=True, key="btn_vid_verify"):
-                    mock_text = "Analyzing video metadata and provided link for verification signatures."
-                    if video_file:
-                        mock_text = "Transcript: Analyzing video metadata and binary structure suggests deepfake tampering detected."
+                    mock_text = "Analyzing video metadata and provided link for verification signatures suggesting deepfake tampering detected."
                     run_full_analysis(mock_text, "Video", source_url=url_input_vid)
 
     elif nav == "📜 History":

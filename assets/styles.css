@@ -1,0 +1,313 @@
+/* SatyaSetu: Futuristic Cybersecurity Theme */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap');
+
+/* Mesh Gradient Background */
+.stApp {
+    background:
+        radial-gradient(at 0% 0%, rgba(20, 184, 166, 0.15) 0, transparent 50%),
+        radial-gradient(at 50% 0%, rgba(15, 23, 42, 1) 0, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(20, 184, 166, 0.15) 0, transparent 50%),
+        #0F172A;
+    font-family: 'Inter', sans-serif;
+    color: #F8FAFC;
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #FFFFFF;
+}
+
+/* Neon Text Accents */
+.neon-text {
+    color: #14B8A6;
+    text-shadow: 0 0 10px rgba(20, 184, 166, 0.5);
+}
+
+/* Glassmorphism Cards - Premium Level */
+.glass-card {
+    background: rgba(30, 41, 59, 0.4);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 18px;
+    padding: 32px;
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Feature Box Inner Accent */
+.glass-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 18px;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.3), transparent 70%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+}
+
+.glass-card:hover {
+    border-color: rgba(20, 184, 166, 0.4);
+    box-shadow: 0 8px 32px 0 rgba(20, 184, 166, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Cyber Buttons */
+div.stButton>button {
+    border-radius: 12px !important;
+    padding: 10px 24px !important;
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
+
+div.stButton>button[kind="primary"] {
+    background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%) !important;
+    border: none !important;
+    color: white !important;
+    box-shadow: 0 4px 15px rgba(20, 184, 166, 0.3) !important;
+}
+
+div.stButton>button[kind="primary"]:hover {
+    box-shadow: 0 0 20px rgba(20, 184, 166, 0.6) !important;
+    scale: 1.02;
+}
+
+div.stButton>button[kind="secondary"] {
+    background: rgba(30, 41, 59, 0.5) !important;
+    border: 1px solid rgba(148, 163, 184, 0.2) !important;
+    color: #14B8A6 !important;
+}
+
+/* Inputs */
+.stTextInput input,
+.stTextArea textarea {
+    background-color: rgba(15, 23, 42, 0.8) !important;
+    border: 1px solid rgba(148, 163, 184, 0.1) !important;
+    border-radius: 12px !important;
+    color: #F8FAFC !important;
+    padding: 12px !important;
+}
+
+.stTextInput input:focus,
+.stTextArea textarea:focus {
+    border-color: #14B8A6 !important;
+    box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.2) !important;
+}
+
+/* Sidebar Styling */
+section[data-testid="stSidebar"] {
+    background: rgba(15, 23, 42, 0.95) !important;
+    border-right: 1px solid rgba(148, 163, 184, 0.1) !important;
+}
+
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
+    color: #94A3B8;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 10px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    background: rgba(30, 41, 59, 0.3) !important;
+    border-radius: 8px 8px 0 0 !important;
+    border: 1px solid rgba(148, 163, 184, 0.1) !important;
+    color: #94A3B8 !important;
+}
+
+.stTabs [aria-selected="true"] {
+    background: rgba(20, 184, 166, 0.1) !important;
+    border-color: #14B8A6 !important;
+    color: #14B8A6 !important;
+}
+
+/* Animations */
+@keyframes pulseGlow {
+    0% {
+        box-shadow: 0 0 10px rgba(20, 184, 166, 0.2);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(20, 184, 166, 0.4);
+    }
+
+    100% {
+        box-shadow: 0 0 10px rgba(20, 184, 166, 0.2);
+    }
+}
+
+.glow-box {
+    animation: pulseGlow 3s infinite;
+}
+
+/* Navbar Styles */
+.nav-container {
+    padding: 0 2rem;
+    /* Reduced top/bottom padding inside bar, use strict height alignment */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(20, 184, 166, 0.2);
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    /* Ensures full stretch */
+    width: 100%;
+    z-index: 10000;
+    /* Extremely high z-index to stay on top */
+    height: 70px;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+/* Remove default Streamlit Header and Top Padding */
+/* Standard Streamlit Header should be visible for deployment and system options */
+header[data-testid="stHeader"] {
+    background: rgba(15, 23, 42, 0.5) !important;
+    backdrop-filter: blur(10px) !important;
+}
+
+/* Add padding to body content so it doesn't get hidden behind fixed navbar + system header */
+.block-container {
+    padding-top: 150px !important;
+    /* (60px system header + 70px custom navbar + 20px gap) */
+    padding-bottom: 2rem !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+    max-width: 100% !important;
+}
+
+/* Fix for Sign In Button to overlay on the fixed navbar */
+/* This targets the column containing the sign-in button */
+
+
+/* Fallback ensuring specific button placement if :has isn't supported or structure differs */
+
+
+/* Push content down so it's not hidden behind fixed navbar */
+.main-content {
+    margin-top: 0px;
+}
+
+.nav-logo {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    /* margin-left: 20px; Removed, let padding handle it */
+}
+
+/* HTML Navigation Button Style */
+.nav-btn {
+    /* Reset manual positioning if used previously, rely on flexbox in nav-container */
+    margin-right: 0;
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: #14B8A6;
+    border-radius: 12px;
+    padding: 8px 20px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.nav-btn:hover {
+    background: rgba(20, 184, 166, 0.1);
+    border-color: #14B8A6;
+    box-shadow: 0 0 15px rgba(20, 184, 166, 0.3);
+}
+
+/* Footer Styles */
+.footer-container {
+    padding: 4rem 4% 1rem 4%;
+    background: rgba(11, 17, 33, 0.95);
+    border-top: 1px solid rgba(148, 163, 184, 0.1);
+    margin-top: 6rem;
+}
+
+.footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 3rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.footer-bottom {
+    text-align: center;
+    padding-top: 3rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.05);
+    margin-top: 3rem;
+    color: #475569;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+}
+
+/* Feature Box Resizing */
+.feature-box {
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: rgba(30, 41, 59, 0.3);
+}
+
+.feature-box h3 {
+    font-size: 2.5rem !important;
+    margin-bottom: 1.5rem;
+}
+
+.feature-box b {
+    font-size: 1.25rem;
+    color: #FFFFFF;
+}
+
+.feature-box p {
+    font-size: 0.95rem !important;
+    margin-top: 0.5rem;
+}
+
+/* Digital Grid Background (Subtle) */
+.stApp::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        linear-gradient(rgba(20, 184, 166, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(20, 184, 166, 0.02) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+}

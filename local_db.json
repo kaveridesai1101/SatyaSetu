@@ -1,0 +1,102 @@
+{
+    "users": [
+        {
+            "name": "Kaveri Desai",
+            "email": "kaveridesai1101@gmail.com",
+            "password_hash": "$2b$12$8TwIi3aqZzv58b5EwQ/ATuilwzXgpo9APISEy2RPnsAoEJt/VPa3O",
+            "created_at": "2026-02-17 14:42:26.862586",
+            "last_login": "2026-02-17 14:42:26.864225",
+            "_id": "69947e52512e4cd78d6206c8"
+        }
+    ],
+    "news_logs": [
+        {
+            "user_id": "69947e52512e4cd78d6206c8",
+            "article_text": "Title: Government Announces New Cybersecurity Framework for Schools Article Text: The Ministry of Education today announced a new nationwide cybersecurity framework aimed at protecting students from online misinformation and digital threats. The framework includes mandatory digital literacy programs, training for teachers, and partnerships with cybersecurity experts. Officials stated that the initiative will roll out in phases beginning next academic year. According to the Ministry, the goal is to improve students\u2019 ability to verify information sources and recognize manipulated content, including deepfakes. Education experts have welcomed the move, calling it a necessary step toward building critical thinking skills in the digital age.",
+            "credibility_score": 51.1,
+            "classification": "Fake",
+            "bias_sentiment": {
+                "sentiment": "POSITIVE",
+                "sentiment_score": 0.9968845248222351,
+                "sensationalism_score": 0.0,
+                "bias_label": "Unknown"
+            },
+            "summary": "Summary unavailable.",
+            "source_type": "Text",
+            "timestamp": "2026-02-17 17:38:53.128321",
+            "_id": "6994a7add36c4e1aa12c9a8c"
+        },
+        {
+            "user_id": "69947e52512e4cd78d6206c8",
+            "article_text": "headline: government announces nationwide ban on social media after midnight article text: in a surprising move late tuesday night, the government announced an immediate nationwide ban on all social media platforms between 12:00 am and 5:00 am, citing \u201cnational productivity concerns\u201d and \u201cdigital mental health protection.\u201d according to an anonymous senior official, the policy will automatically block access to platforms including facebook, instagram, x, and youtube during restricted hours starting next week. the minister of digital affairs reportedly stated that studies show a 300% increase in anxiety among citizens who use social media after midnight. however, no official research report was released to support this claim. critics argue that the sudden decision may violate digital freedom rights and could negatively impact businesses that operate globally across time zones. small online sellers expressed concern about losing international customers. meanwhile, government representatives insist the policy is temporary and necessary for \u201cnational well-being,\u201d though no end date has been specified. more details are expected in an official press conference later this week.",
+            "credibility_score": 67.2,
+            "classification": "Uncertain / Verification Needed",
+            "bias_sentiment": {
+                "sentiment": "NEGATIVE",
+                "sentiment_score": 0.9958512783050537,
+                "sensationalism_score": 0.0,
+                "bias_label": "Unknown",
+                "sentiment_intensity": 0.9958512783050537,
+                "risk_score": 30.0
+            },
+            "summary": "Summary unavailable.",
+            "source_type": "Text",
+            "timestamp": "2026-02-18 17:09:25.279570",
+            "_id": "6995f2455109a827736510cf"
+        },
+        {
+            "user_id": "69947e52512e4cd78d6206c8",
+            "article_text": "analysis suggest the uploaded image shows high probability of ai-generated artifacts in facial regions.",
+            "credibility_score": 69.0,
+            "classification": "Uncertain / Verification Needed",
+            "bias_sentiment": {
+                "sentiment": "POSITIVE",
+                "sentiment_score": 0.6372708082199097,
+                "sensationalism_score": 0.0,
+                "bias_label": "Unknown",
+                "sentiment_intensity": 0.6372708082199097,
+                "risk_score": 0.0
+            },
+            "summary": "Summary unavailable.",
+            "source_type": "Image",
+            "timestamp": "2026-02-18 17:16:01.633693",
+            "_id": "6995f3d15109a827736510d0"
+        },
+        {
+            "user_id": "69947e52512e4cd78d6206c8",
+            "article_text": "analysis suggest the uploaded image shows high probability of ai-generated artifacts in facial regions.",
+            "credibility_score": 69.0,
+            "classification": "Uncertain / Verification Needed",
+            "bias_sentiment": {
+                "sentiment": "POSITIVE",
+                "sentiment_score": 0.6372708082199097,
+                "sensationalism_score": 0.0,
+                "bias_label": "Unknown",
+                "sentiment_intensity": 0.6372708082199097,
+                "risk_score": 0.0
+            },
+            "summary": "Summary unavailable.",
+            "source_type": "Image",
+            "timestamp": "2026-02-18 17:20:29.934926",
+            "_id": "6995f4dd5109a827736510d1"
+        },
+        {
+            "user_id": "69947e52512e4cd78d6206c8",
+            "article_text": "analyzing video metadata and provided link for verification signatures.",
+            "credibility_score": 66.2,
+            "classification": "Uncertain / Verification Needed",
+            "bias_sentiment": {
+                "sentiment": "NEGATIVE",
+                "sentiment_score": 0.7714988589286804,
+                "sensationalism_score": 0.0,
+                "bias_label": "Unknown",
+                "sentiment_intensity": 0.7714988589286804,
+                "risk_score": 0.0
+            },
+            "summary": "Summary unavailable.",
+            "source_type": "Video",
+            "timestamp": "2026-02-18 17:33:21.894709",
+            "_id": "6995f7e15109a827736510d4"
+        }
+    ]
+}

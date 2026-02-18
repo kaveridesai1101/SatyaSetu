@@ -471,20 +471,18 @@ def dashboard_page():
             "🎥 Video Analysis",
             "📜 History",
             "⚙️ Settings"
-        ])
+        ], key="sidebar_nav_radio")
         
         st.markdown("---")
-        if st.button("Logout", use_container_width=True):
+        if st.button("Logout", use_container_width=True, key="logout_btn"):
             session_manager.logout()
             st.rerun()
 
-    # ML components are loaded lazily within specific tabs to prevent blocking the dashboard
-
     # --- Tab Rendering ---
-    if nav == "🏠 Dashboard Overview":
+    if "Overview" in nav:
         st.markdown("## Security Overview")
         
-        # Dashboard Cards using columns (Native Streamlit)
+        # Dashboard Cards using columns
         c1, c2, c3 = st.columns(3)
         with c1:
             st.metric("Total Checks", "128", delta="+12")
@@ -504,14 +502,18 @@ def dashboard_page():
     elif "Text Analysis" in nav:
         st.markdown("## 📄 Text Verification")
         
-        # Load ML components only when strictly on this tab
         with st.spinner("Initializing AI Engines..."):
-            preprocessor, classifier, verifier, scorer, bias_analyzer, summarizer, explainer, linguistic_analyzer, source_verifier, entity_verifier = load_ml_components()
+            # Load components
+            try:
+                preprocessor, classifier, verifier, scorer, bias_analyzer, summarizer, explainer, linguistic_analyzer, source_verifier, entity_verifier = load_ml_components()
+            except Exception as e:
+                st.error(f"Critical Error: AI Engines failed to start. Details: {str(e)}")
+                return
 
         with st.container():
             text_input = st.text_area("Paste news content or social claims:", height=200, placeholder="Verify news integrity...", key="main_text_input")
             url_input = st.text_input("Source URL (Optional):", placeholder="https://...", key="main_url_input")
-            if st.button("Verify Integrity", type="primary", use_container_width=True):
+            if st.button("Verify Integrity", type="primary", use_container_width=True, key="btn_text_verify"):
                 if len(text_input) > 50:
                     run_full_analysis(text_input, "Text", source_url=url_input)
                 else:
@@ -521,54 +523,53 @@ def dashboard_page():
         st.markdown("## 🖼️ Forensic Image Analysis")
         
         with st.spinner("Initializing AI Engines..."):
-            preprocessor, classifier, verifier, scorer, bias_analyzer, summarizer, explainer, linguistic_analyzer, source_verifier, entity_verifier = load_ml_components()
+            try:
+                preprocessor, classifier, verifier, scorer, bias_analyzer, summarizer, explainer, linguistic_analyzer, source_verifier, entity_verifier = load_ml_components()
+            except Exception as e:
+                st.error(f"Critical Error: AI Engines failed to start. Details: {str(e)}")
+                return
 
         with st.container():
             image_file = st.file_uploader("Upload image for deepfake detection", type=["jpg", "png", "jpeg"], key="img_upload")
             url_input_img = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_img_input")
             
-            if image_file or url_input_img:
-                if image_file:
-                    st.image(image_file, use_container_width=True)
-                
-                if st.button("Detect Manipulation", type="primary", use_container_width=True, key="btn_img_verify"):
-                    mock_text = "Analysis suggest the uploaded image shows high probability of AI-generated artifacts in facial regions."
-                    run_full_analysis(mock_text, "Image", source_url=url_input_img)
+            if image_file:
+                st.image(image_file, use_container_width=True)
+            
+            if st.button("Detect Manipulation", type="primary", use_container_width=True, key="btn_img_verify"):
+                mock_text = "Analysis suggest the uploaded image shows high probability of AI-generated artifacts in facial regions."
+                run_full_analysis(mock_text, "Image", source_url=url_input_img)
 
     elif "Video Analysis" in nav:
         st.markdown("## 🎥 Video Deepfake Guard")
         
         with st.spinner("Initializing AI Engines..."):
-            preprocessor, classifier, verifier, scorer, bias_analyzer, summarizer, explainer, linguistic_analyzer, source_verifier, entity_verifier = load_ml_components()
+            try:
+                preprocessor, classifier, verifier, scorer, bias_analyzer, summarizer, explainer, linguistic_analyzer, source_verifier, entity_verifier = load_ml_components()
+            except Exception as e:
+                st.error(f"Critical Error: AI Engines failed to start. Details: {str(e)}")
+                return
 
         with st.container():
             video_file = st.file_uploader("Upload video to verify authenticity", type=["mp4", "mov"], key="vid_upload")
             url_input_vid = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_vid_input")
             
-            if video_file or url_input_vid:
-                if video_file:
-                    st.info(f"Video selected: {video_file.name}")
-                
-                if st.button("Extract & Verify", type="primary", use_container_width=True, key="btn_vid_verify"):
-                    mock_text = "Analyzing video metadata and provided link for verification signatures suggesting deepfake tampering detected."
-                    run_full_analysis(mock_text, "Video", source_url=url_input_vid)
+            if video_file:
+                st.info(f"Video selected: {video_file.name}")
+            
+            if st.button("Extract & Verify", type="primary", use_container_width=True, key="btn_vid_verify"):
+                mock_text = "Analyzing video metadata suggests deepfake tampering detected."
+                run_full_analysis(mock_text, "Video", source_url=url_input_vid)
 
-    elif nav == "📜 History":
+    elif "History" in nav:
         history_page()
 
-    elif nav == "⚙️ Settings":
+    elif "Settings" in nav:
         st.markdown("## Account Configuration")
-        
-        # Enhanced Profile View within glass-card
-        # Note: Avoid blank lines + indentation inside triple quotes to prevent markdown code-block triggers
         st.markdown(f"""
 <div class='glass-card' style='padding: 30px;'>
 <div style='display: flex; align-items: center; margin-bottom: 25px;'>
-<div style='background: linear-gradient(135deg, #6366F1, #A855F7); 
-width: 80px; height: 80px; border-radius: 40px; 
-display: flex; align-items: center; justify-content: center; 
-font-size: 35px; color: white; margin-right: 25px;
-box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);'>
+<div style='background: linear-gradient(135deg, #6366F1, #A855F7); width: 80px; height: 80px; border-radius: 40px; display: flex; align-items: center; justify-content: center; font-size: 35px; color: white; margin-right: 25px;'>
 {user['name'][0].upper()}
 </div>
 <div>
@@ -577,28 +578,18 @@ box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);'>
 </div>
 </div>
 <div style='border-top: 1px solid rgba(148, 163, 184, 0.1); padding-top: 20px;'>
-<div style='margin-bottom: 15px;'>
-<p style='color: #6366F1; font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;'>Email Address</p>
+<p style='color: #6366F1; font-weight: 500; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 5px;'>Email Address</p>
 <p style='font-size: 1.1rem;'>{user['email']}</p>
-</div>
-<div style='margin-bottom: 15px;'>
-<p style='color: #6366F1; font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;'>Account Status</p>
-<p style='display: flex; align-items: center;'>
-<span style='width: 10px; height: 10px; background: #10B981; border-radius: 5px; margin-right: 8px;'></span>
-Active / Enterprise
-</p>
-</div>
 </div>
 </div>
 """, unsafe_allow_html=True)
 
-    # Display Results if available (Persistent across navigation within the dashboard)
+    # Display Results if available
     result = session_manager.get_analysis_result()
-    if result and nav in ["📄 Text Analysis", "🖼️ Image Analysis", "🎥 Video Analysis"]:
+    if result and any(x in nav for x in ["Text", "Image", "Video"]):
         st.markdown("---")
         st.markdown(f"### 📊 Verification Report: {result['score']['rating']}")
         
-        # Row 1: High Level
         c1, c2 = st.columns([1, 2])
         with c1:
             components.credibility_gauge(result['score']['score'])
@@ -607,73 +598,11 @@ Active / Enterprise
             st.markdown(f"<h2 style='color: {result['score']['color']};'>{result['score']['rating']}</h2>", unsafe_allow_html=True)
             st.code(f"Confidence: {result['deberta']['real_prob']*100:.1f}%", language=None)
 
-        st.markdown("---")
-        
-        # Row 2: Layered Breakdown
-        st.markdown("#### 🔬 Analysis Breakdown")
-        
-        b1, b2, b3, b4 = st.columns(4)
-        with b1:
-            components.result_card("Source Trust", f"{result['source']['score']:.0f}%", 
-                                  "success" if result['source']['score'] > 70 else "warning")
-            st.caption(f"{result['source']['domain'] or 'Unknown'}")
-            
-        with b2:
-            components.result_card("Entities", f"{result['entity']['score']:.0f}%", 
-                                  "success" if result['entity']['score'] > 70 else "neutral")
-            st.caption(f"{result['entity'].get('entity_count', 0)} Verified")
-
-        with b3:
-            # Reverse Risk for Display (Safety Score) or Show Risk? User allowed "Risk Level".
-            risk = result['linguistic']['risk_score']
-            components.result_card("Linguistic Risk", f"{risk:.0f}%", 
-                                  "danger" if risk > 50 else "success")
-            st.caption("Red Flags")
-
-        with b4:
-            s_risk = result['bias']['risk_score']
-            components.result_card("Sentiment Risk", f"{s_risk:.0f}%", 
-                                  "danger" if s_risk > 50 else "success")
-            st.caption("Emotionality")
-
-        # Detailed Explanations
         with st.expander("🛡️ AI Security Audit & Reasons", expanded=True):
             st.markdown(f"**Summary:** {result['summary']}")
-            
-            st.markdown("#### 🚩 Detected Risk Factors:")
-            lines = []
-            
-            # Linguistic Flags
-            if result['linguistic']['linguistic_flags']:
-                for flag in result['linguistic']['linguistic_flags']:
-                    lines.append(f"- 🗣️ **Language Style**: {flag}")
-            
-            # Source Flags
-            if result['source']['score'] < 50:
-                 lines.append(f"- 🌐 **Source**: Domain '{result['source']['domain']}' is untrusted or unknown.")
-            
-            # Entity Flags
-            if result['entity']['score'] < 50:
-                 lines.append(f"- 🏢 **Entities**: {result['entity']['reason']}")
-
-            # Sentiment Flags
-            if result['bias']['risk_score'] > 60:
-                 lines.append(f"- 🎭 **Sentiment**: High emotional intensity detected ({result['bias']['sentiment']}).")
-                 
-            if not lines:
-                st.success("✅ No significant risk factors detected. Content appears neutral and verified.")
-            else:
-                for line in lines:
-                    st.markdown(line)
-
-        # Claims Verification
-        if result['claims']:
-            with st.expander("🔍 Verified Claims Reference"):
-                components.similarity_breakdown(result['claims'])
-        
-        if st.button("Clear Report"):
-            session_manager.clear_analysis_result()
-            st.rerun()
+            if st.button("Clear Report"):
+                session_manager.clear_analysis_result()
+                st.rerun()
 
 def history_page():
     user = session_manager.get_current_user()
@@ -681,14 +610,7 @@ def history_page():
         session_manager.set_page("login")
         st.rerun()
         
-    c1, c2 = st.columns([8, 2])
-    with c1:
-        st.markdown("### Analysis History")
-    with c2:
-        if st.button("Back to Dashboard"):
-            session_manager.set_page("dashboard")
-            st.rerun()
-            
+    st.markdown("### Analysis History")
     history = db.get_user_history(user['id'])
     
     if not history:
@@ -697,7 +619,7 @@ def history_page():
         for item in history:
             with st.expander(f"{item.get('timestamp')} - {item.get('classification')} ({item.get('credibility_score')}%)"):
                 st.write(item.get('summary', 'No summary'))
-                st.caption(f"Text: {item.get('article_text')[:100]}...")
+                st.caption(f"Text Preview: {item.get('article_text')[:100]}...")
 
 # --- Main Routing ---
 from datetime import datetime

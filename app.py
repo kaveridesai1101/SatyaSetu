@@ -353,7 +353,7 @@ def signup_page():
                 elif new_password != confirm_password:
                     st.error("Passwords do not match.")
                 else:
-                    success, msg = auth.register_user(new_email, new_password, new_name)
+                    success, msg = auth.register_user(new_name, new_email, new_password, confirm_password)
                     if success:
                         st.success("Account created successfully! Please sign in.")
                         time.sleep(1.5)

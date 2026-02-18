@@ -93,39 +93,98 @@ def render_footer():
         </div>
     """, unsafe_allow_html=True)
 
-# --- Load Models (Cached) ---
+# --- Load Models (Memory Efficient & Robust) ---
 @st.cache_resource
 def load_ml_components():
+    """
+    Load ML components with individual failure handling to prevent app hanging
+    """
     logger.info("Initializing ML Components on-demand...")
     
-    # Deferred heavy imports
-    from src.preprocessing import TextPreprocessor
-    from src.models.deberta_classifier import DebertaClassifier
-    from src.models.semantic_verifier import SemanticVerifier
-    from src.credibility_scorer import CredibilityScorer
-    from src.bias_sentiment_analyzer import BiasSentimentAnalyzer
-    from src.summarizer import Summarizer
-    from src.linguistic_analysis import LinguisticAnalyzer
-    from src.source_verifier import SourceVerifier
-    from src.entity_verifier import EntityVerifier
-    from src.explainability import ExplainabilityEngine
+    # Initialize dictionary to store components
+    components = {}
+    
+    try:
+        from src.preprocessing import TextPreprocessor
+        components['preprocessor'] = TextPreprocessor()
+        logger.info("Preprocessor loaded")
+    except Exception as e:
+        logger.error(f"Failed to load Preprocessor: {e}")
+        components['preprocessor'] = None
 
-    preprocessor = TextPreprocessor()
-    classifier = DebertaClassifier()
-    verifier = SemanticVerifier()
-    scorer = CredibilityScorer()
-    bias_analyzer = BiasSentimentAnalyzer()
-    summarizer = Summarizer()
+    try:
+        from src.models.deberta_classifier import DebertaClassifier
+        components['classifier'] = DebertaClassifier()
+        logger.info("Classifier loaded")
+    except Exception as e:
+        logger.warning(f"Failed to load DebertaClassifier: {e}. Falling back to lite mode.")
+        components['classifier'] = None
+
+    try:
+        from src.models.semantic_verifier import SemanticVerifier
+        components['verifier'] = SemanticVerifier()
+    except Exception as e:
+        logger.warning(f"Semantic Verifier failed to load: {e}")
+        components['verifier'] = None
+
+    try:
+        from src.credibility_scorer import CredibilityScorer
+        components['scorer'] = CredibilityScorer()
+    except Exception as e:
+        logger.warning(f"Credibility Scorer failed to load: {e}")
+        components['scorer'] = None
+
+    try:
+        from src.bias_sentiment_analyzer import BiasSentimentAnalyzer
+        components['bias_analyzer'] = BiasSentimentAnalyzer()
+    except Exception as e:
+        logger.warning(f"Bias Sentiment Analyzer failed to load: {e}")
+        components['bias_analyzer'] = None
+
+    try:
+        from src.summarizer import Summarizer
+        components['summarizer'] = Summarizer()
+    except Exception as e:
+        logger.warning(f"Summarizer failed to load: {e}")
+        components['summarizer'] = None
     
-    # New Layers
-    linguistic_analyzer = LinguisticAnalyzer()
-    source_verifier = SourceVerifier()
-    entity_verifier = EntityVerifier()
+    try:
+        from src.linguistic_analysis import LinguisticAnalyzer
+        components['linguistic_analyzer'] = LinguisticAnalyzer()
+    except Exception as e:
+        logger.warning(f"Linguistic Analyzer failed to load: {e}")
+        components['linguistic_analyzer'] = None
+
+    try:
+        from src.source_verifier import SourceVerifier
+        components['source_verifier'] = SourceVerifier()
+    except Exception as e:
+        logger.warning(f"Source Verifier failed to load: {e}")
+        components['source_verifier'] = None
+
+    try:
+        from src.entity_verifier import EntityVerifier
+        components['entity_verifier'] = EntityVerifier()
+    except Exception as e:
+        logger.warning(f"Entity Verifier failed to load: {e}")
+        components['entity_verifier'] = None
+        
+    try:
+        from src.explainability import ExplainabilityEngine
+        if components.get('classifier'):
+            components['explainer'] = ExplainabilityEngine(
+                components['classifier'].get_model(), 
+                components['classifier'].get_tokenizer()
+            )
+            logger.info("Explainability Engine loaded")
+        else:
+            components['explainer'] = None
+            logger.warning("Explainability Engine not loaded: Classifier not available.")
+    except Exception as e:
+        components['explainer'] = None
+        logger.warning(f"Explainability Engine failed to load: {e}")
     
-    # Explainability needs the model from classifier
-    explainer = ExplainabilityEngine(classifier.get_model(), classifier.get_tokenizer())
-    
-    return preprocessor, classifier, verifier, scorer, bias_analyzer, summarizer, explainer, linguistic_analyzer, source_verifier, entity_verifier
+    return components
 
 # --- Initialize ---
 session_manager.init_session_state()
@@ -368,56 +427,66 @@ def signup_page():
 
 def run_full_analysis(input_text, source_type="Text", source_url=None):
     """Core Analysis Pipeline Runner (7-Layer Architecture)"""
-    # Load ML components only when strictly needed for analysis
+    # Load ML components dictionary
     with st.spinner("Initializing AI Engines..."):
-        preprocessor, classifier, verifier, scorer, bias_analyzer, summarizer, explainer, linguistic_analyzer, source_verifier, entity_verifier = load_ml_components()
+        components = load_ml_components()
         
     user = session_manager.get_current_user()
     
     with st.spinner("Running 7-Layer Detection Protocol..."):
         # Layer 1: Preprocessing
+        preprocessor = components.get('preprocessor')
+        if not preprocessor:
+            st.error("Text Preprocessor failed to load.")
+            return
+
         clean_text = preprocessor.clean_text(input_text)
         
         # Layer 2: Linguistic Analysis (Red-Flags)
-        ling_res = linguistic_analyzer.analyze(clean_text)
+        linguistic_analyzer = components.get('linguistic_analyzer')
+        ling_res = linguistic_analyzer.analyze(clean_text) if linguistic_analyzer else {"risk_score": 0, "linguistic_flags": []}
         
         # Layer 3: ML Classification
-        deberta_res = classifier.predict(clean_text)
+        classifier = components.get('classifier')
+        deberta_res = classifier.predict(clean_text) if classifier else {"label": "Neutral", "confidence": 0.5, "fake_prob": 0.5, "real_prob": 0.5}
         
         # Layer 4: Sentiment & Bias
-        bias_res = bias_analyzer.analyze(clean_text)
+        bias_analyzer = components.get('bias_analyzer')
+        bias_res = bias_analyzer.analyze(clean_text) if bias_analyzer else {"risk_score": 0, "sentiment": "Neutral"}
         
         # Layer 5: Entity Verification
         entities = preprocessor.get_entities(clean_text)
-        entity_res = entity_verifier.verify_entities(entities)
+        entity_verifier = components.get('entity_verifier')
+        entity_res = entity_verifier.verify_entities(entities) if entity_verifier else {"score": 50, "reason": "Entity Verification unavailable"}
         
         # Layer 6: Source Credibility
-        # Use provided URL or extract from text
+        source_verifier = components.get('source_verifier')
         urls = preprocessor.extract_urls(input_text)
         target_url = source_url if source_url else (urls[0] if urls else None)
-        source_res = source_verifier.verify_source(target_url)
+        source_res = source_verifier.verify_source(target_url) if source_verifier else {"score": 50, "domain": "Unknown"}
 
-        # Trusted Sources for Semantic Verification (Layer 2.5)
+        # Trusted Sources (Layer 2.5)
+        verifier = components.get('verifier')
         claims = preprocessor.extract_claims(clean_text)
         trusted_sources = [
-            "Official health reports confirm vaccine safety protocols were strictly followed.",
-            "Cybersecurity agencies deny rumors of a national grid breach.",
-            "The World Health Organization states that vaccines are safe.",
-            "NASA confirms the earth is round and orbits the sun.",
-            "Climate change is scientifically proven to be driven by human activity."
+            "Official reports confirm authenticity of the incident.",
+            "Health organizations state that safety protocols were followed.",
+            "Historical records verify the sequence of events."
         ]
-        verification_res = verifier.verify_claims(claims, trusted_sources) if claims else []
+        verification_res = verifier.verify_claims(claims, trusted_sources) if verifier and claims else []
         
-        summary = summarizer.generate_summary(clean_text)
+        summarizer = components.get('summarizer')
+        summary = summarizer.generate_summary(clean_text) if summarizer else "Summary unavailable."
         
         # Layer 7: Final Weighted Scoring
+        scorer = components.get('scorer')
         final_score = scorer.calculate_score(
             ml_score=deberta_res['real_prob'] * 100,
             keyword_risk_score=ling_res['risk_score'],
             sentiment_risk_score=bias_res['risk_score'],
             source_score=source_res['score'],
             entity_score=entity_res['score']
-        )
+        ) if scorer else {"score": 50, "rating": "Unknown", "color": "#94A3B8"}
         
         result_bundle = {
             "text": clean_text[:200] + "...",
@@ -479,130 +548,132 @@ def dashboard_page():
             st.rerun()
 
     # --- Tab Rendering ---
+    # We use st.container() for the main area to help with clearing on rerun
+    main_area = st.container()
+
     if "Overview" in nav:
-        st.markdown("## Security Overview")
-        
-        # Dashboard Cards using columns
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.metric("Total Checks", "128", delta="+12")
-        with c2:
-            st.metric("Reliable Content", "85%", delta="+2%")
-        with c3:
-            st.metric("Threats Detected", "12", delta="-4", delta_color="inverse")
-        
-        st.markdown("### Recent Activity")
-        history = db.get_user_history(user['id']) or []
-        if history:
-            for item in history[:3]:
-                st.markdown(f"<div class='glass-card' style='margin-bottom: 10px; padding: 10px;'><b>{item.get('classification')}</b> - {item.get('source_type')} - {item.get('timestamp')}</div>", unsafe_allow_html=True)
-        else:
-            st.info("No recent activity found.")
+        with main_area:
+            st.markdown("## Security Overview")
+            
+            # Dashboard Cards using columns
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.metric("Total Checks", "128", delta="+12")
+            with c2:
+                st.metric("Reliable Content", "85%", delta="+2%")
+            with c3:
+                st.metric("Threats Detected", "12", delta="-4", delta_color="inverse")
+            
+            st.markdown("### Recent Activity")
+            history = db.get_user_history(user['id']) or []
+            if history:
+                for item in history[:3]:
+                    st.markdown(f"<div class='glass-card' style='margin-bottom: 10px; padding: 10px;'><b>{item.get('classification')}</b> - {item.get('source_type')} - {item.get('timestamp')}</div>", unsafe_allow_html=True)
+            else:
+                st.info("No recent activity found.")
 
     elif "Text Analysis" in nav:
-        st.markdown("## 📄 Text Verification")
-        
-        with st.spinner("Initializing AI Engines..."):
-            # Load components
-            try:
-                preprocessor, classifier, verifier, scorer, bias_analyzer, summarizer, explainer, linguistic_analyzer, source_verifier, entity_verifier = load_ml_components()
-            except Exception as e:
-                st.error(f"Critical Error: AI Engines failed to start. Details: {str(e)}")
-                return
+        with main_area:
+            st.markdown("## 📄 Text Verification")
+            
+            # ML components are loaded within the tab to provide specific feedback
+            with st.spinner("Initializing AI Engines... (May take a moment on first load)"):
+                try:
+                    # In a real app, load_ml_components should be fast if cached
+                    load_ml_components()
+                except Exception as e:
+                    st.error(f"Critical Error: AI Engines failed to start. Details: {str(e)}")
 
-        with st.container():
-            text_input = st.text_area("Paste news content or social claims:", height=200, placeholder="Verify news integrity...", key="main_text_input")
-            url_input = st.text_input("Source URL (Optional):", placeholder="https://...", key="main_url_input")
-            if st.button("Verify Integrity", type="primary", use_container_width=True, key="btn_text_verify"):
-                if len(text_input) > 50:
-                    run_full_analysis(text_input, "Text", source_url=url_input)
-                else:
-                    st.warning("Please provide more content (minimum 50 characters).")
+            with st.container():
+                text_input = st.text_area("Paste news content or social claims:", height=200, placeholder="Verify news integrity...", key="main_text_input")
+                url_input = st.text_input("Source URL (Optional):", placeholder="https://...", key="main_url_input")
+                if st.button("Verify Integrity", type="primary", use_container_width=True, key="btn_text_verify"):
+                    if len(text_input) > 50:
+                        run_full_analysis(text_input, "Text", source_url=url_input)
+                    else:
+                        st.warning("Please provide more content (minimum 50 characters).")
 
     elif "Image Analysis" in nav:
-        st.markdown("## 🖼️ Forensic Image Analysis")
-        
-        with st.spinner("Initializing AI Engines..."):
-            try:
-                preprocessor, classifier, verifier, scorer, bias_analyzer, summarizer, explainer, linguistic_analyzer, source_verifier, entity_verifier = load_ml_components()
-            except Exception as e:
-                st.error(f"Critical Error: AI Engines failed to start. Details: {str(e)}")
-                return
+        with main_area:
+            st.markdown("## 🖼️ Forensic Image Analysis")
+            
+            with st.spinner("Initializing AI Engines..."):
+                load_ml_components()
 
-        with st.container():
-            image_file = st.file_uploader("Upload image for deepfake detection", type=["jpg", "png", "jpeg"], key="img_upload")
-            url_input_img = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_img_input")
-            
-            if image_file:
-                st.image(image_file, use_container_width=True)
-            
-            if st.button("Detect Manipulation", type="primary", use_container_width=True, key="btn_img_verify"):
-                mock_text = "Analysis suggest the uploaded image shows high probability of AI-generated artifacts in facial regions."
-                run_full_analysis(mock_text, "Image", source_url=url_input_img)
+            with st.container():
+                image_file = st.file_uploader("Upload image for deepfake detection", type=["jpg", "png", "jpeg"], key="img_upload")
+                url_input_img = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_img_input")
+                
+                if image_file:
+                    st.image(image_file, use_container_width=True)
+                
+                if st.button("Detect Manipulation", type="primary", use_container_width=True, key="btn_img_verify"):
+                    mock_text = "Analysis suggest the uploaded image shows high probability of AI-generated artifacts in facial regions."
+                    run_full_analysis(mock_text, "Image", source_url=url_input_img)
 
     elif "Video Analysis" in nav:
-        st.markdown("## 🎥 Video Deepfake Guard")
-        
-        with st.spinner("Initializing AI Engines..."):
-            try:
-                preprocessor, classifier, verifier, scorer, bias_analyzer, summarizer, explainer, linguistic_analyzer, source_verifier, entity_verifier = load_ml_components()
-            except Exception as e:
-                st.error(f"Critical Error: AI Engines failed to start. Details: {str(e)}")
-                return
+        with main_area:
+            st.markdown("## 🎥 Video Deepfake Guard")
+            
+            with st.spinner("Initializing AI Engines..."):
+                load_ml_components()
 
-        with st.container():
-            video_file = st.file_uploader("Upload video to verify authenticity", type=["mp4", "mov"], key="vid_upload")
-            url_input_vid = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_vid_input")
-            
-            if video_file:
-                st.info(f"Video selected: {video_file.name}")
-            
-            if st.button("Extract & Verify", type="primary", use_container_width=True, key="btn_vid_verify"):
-                mock_text = "Analyzing video metadata suggests deepfake tampering detected."
-                run_full_analysis(mock_text, "Video", source_url=url_input_vid)
+            with st.container():
+                video_file = st.file_uploader("Upload video to verify authenticity", type=["mp4", "mov"], key="vid_upload")
+                url_input_vid = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_vid_input")
+                
+                if video_file:
+                    st.info(f"Video selected: {video_file.name}")
+                
+                if st.button("Extract & Verify", type="primary", use_container_width=True, key="btn_vid_verify"):
+                    mock_text = "Analyzing video metadata suggests deepfake tampering detected."
+                    run_full_analysis(mock_text, "Video", source_url=url_input_vid)
 
     elif "History" in nav:
-        history_page()
+        with main_area:
+            history_page()
 
     elif "Settings" in nav:
-        st.markdown("## Account Configuration")
-        st.markdown(f"""
-<div class='glass-card' style='padding: 30px;'>
-<div style='display: flex; align-items: center; margin-bottom: 25px;'>
-<div style='background: linear-gradient(135deg, #6366F1, #A855F7); width: 80px; height: 80px; border-radius: 40px; display: flex; align-items: center; justify-content: center; font-size: 35px; color: white; margin-right: 25px;'>
-{user['name'][0].upper()}
-</div>
-<div>
-<h2 style='margin: 0; font-size: 2rem;'>{user['name']}</h2>
-<p style='color: #94A3B8; margin: 0;'>Verified Security Professional</p>
-</div>
-</div>
-<div style='border-top: 1px solid rgba(148, 163, 184, 0.1); padding-top: 20px;'>
-<p style='color: #6366F1; font-weight: 500; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 5px;'>Email Address</p>
-<p style='font-size: 1.1rem;'>{user['email']}</p>
-</div>
-</div>
-""", unsafe_allow_html=True)
+        with main_area:
+            st.markdown("## Account Configuration")
+            st.markdown(f"""
+    <div class='glass-card' style='padding: 30px;'>
+    <div style='display: flex; align-items: center; margin-bottom: 25px;'>
+    <div style='background: linear-gradient(135deg, #6366F1, #A855F7); width: 80px; height: 80px; border-radius: 40px; display: flex; align-items: center; justify-content: center; font-size: 35px; color: white; margin-right: 25px;'>
+    {user['name'][0].upper()}
+    </div>
+    <div>
+    <h2 style='margin: 0; font-size: 2rem;'>{user['name']}</h2>
+    <p style='color: #94A3B8; margin: 0;'>Verified Security Professional</p>
+    </div>
+    </div>
+    <div style='border-top: 1px solid rgba(148, 163, 184, 0.1); padding-top: 20px;'>
+    <p style='color: #6366F1; font-weight: 500; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 5px;'>Email Address</p>
+    <p style='font-size: 1.1rem;'>{user['email']}</p>
+    </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # Display Results if available
     result = session_manager.get_analysis_result()
     if result and any(x in nav for x in ["Text", "Image", "Video"]):
-        st.markdown("---")
-        st.markdown(f"### 📊 Verification Report: {result['score']['rating']}")
-        
-        c1, c2 = st.columns([1, 2])
-        with c1:
-            components.credibility_gauge(result['score']['score'])
-        with c2:
-            st.markdown("#### Detection Signal")
-            st.markdown(f"<h2 style='color: {result['score']['color']};'>{result['score']['rating']}</h2>", unsafe_allow_html=True)
-            st.code(f"Confidence: {result['deberta']['real_prob']*100:.1f}%", language=None)
+        with main_area:
+            st.markdown("---")
+            st.markdown(f"### 📊 Verification Report: {result['score']['rating']}")
+            
+            c1, c2 = st.columns([1, 2])
+            with c1:
+                components.credibility_gauge(result['score']['score'])
+            with c2:
+                st.markdown("#### Detection Signal")
+                st.markdown(f"<h2 style='color: {result['score']['color']};'>{result['score']['rating']}</h2>", unsafe_allow_html=True)
+                st.code(f"Confidence: {result['deberta']['real_prob']*100:.1f}%", language=None)
 
-        with st.expander("🛡️ AI Security Audit & Reasons", expanded=True):
-            st.markdown(f"**Summary:** {result['summary']}")
-            if st.button("Clear Report"):
-                session_manager.clear_analysis_result()
-                st.rerun()
+            with st.expander("🛡️ AI Security Audit & Reasons", expanded=True):
+                st.markdown(f"**Summary:** {result['summary']}")
+                if st.button("Clear Report", key="clear_report_btn"):
+                    session_manager.clear_analysis_result()
+                    st.rerun()
 
 def history_page():
     user = session_manager.get_current_user()

@@ -85,3 +85,7 @@ def save_analysis_result(result: dict):
 def get_analysis_result() -> Optional[dict]:
     """Get saved analysis result"""
     return st.session_state.get("analysis_result", None)
+
+def clear_analysis_result():
+    """Clear saved analysis result"""
+    st.session_state.analysis_result = None

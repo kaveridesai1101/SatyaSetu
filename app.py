@@ -425,100 +425,133 @@ def signup_page():
             session_manager.set_page("login")
             st.rerun()
 
-def run_full_analysis(input_text, source_type="Text", source_url=None):
-    """Core Analysis Pipeline Runner (7-Layer Architecture)"""
-    # Load ML components dictionary
-    with st.spinner("Initializing AI Engines..."):
-        components = load_ml_components()
-        
-    user = session_manager.get_current_user()
+def render_result_card(nav_name):
+    """Standardized component to display analysis results if they exist for the current tab"""
+    result = session_manager.get_analysis_result()
     
-    with st.spinner("Running 7-Layer Detection Protocol..."):
-        # Layer 1: Preprocessing
-        preprocessor = components.get('preprocessor')
-        if not preprocessor:
-            st.error("Text Preprocessor failed to load.")
-            return
+    # Only show results if they match the current media type or if we just ran an analysis
+    if result and result.get('source_type', '').lower() in nav_name.lower():
+        st.markdown("---")
+        st.markdown(f"### 📊 Verification Report: {result['score']['rating']}")
+        
+        c1, c2 = st.columns([1, 2])
+        with c1:
+            components.credibility_gauge(result['score']['score'])
+        with c2:
+            st.markdown("#### Detection Signal")
+            st.markdown(f"<h2 style='color: {result['score']['color']};'>{result['score']['rating']}</h2>", unsafe_allow_html=True)
+            st.code(f"Confidence: {result['deberta']['real_prob']*100:.1f}%", language=None)
 
-        clean_text = preprocessor.clean_text(input_text)
-        
-        # Layer 2: Linguistic Analysis (Red-Flags)
-        linguistic_analyzer = components.get('linguistic_analyzer')
-        ling_res = linguistic_analyzer.analyze(clean_text) if linguistic_analyzer else {"risk_score": 0, "linguistic_flags": []}
-        
-        # Layer 3: ML Classification
-        classifier = components.get('classifier')
-        deberta_res = classifier.predict(clean_text) if classifier else {"label": "Neutral", "confidence": 0.5, "fake_prob": 0.5, "real_prob": 0.5}
-        
-        # Layer 4: Sentiment & Bias
-        bias_analyzer = components.get('bias_analyzer')
-        bias_res = bias_analyzer.analyze(clean_text) if bias_analyzer else {"risk_score": 0, "sentiment": "Neutral"}
-        
-        # Layer 5: Entity Verification
-        entities = preprocessor.get_entities(clean_text)
-        entity_verifier = components.get('entity_verifier')
-        entity_res = entity_verifier.verify_entities(entities) if entity_verifier else {"score": 50, "reason": "Entity Verification unavailable"}
-        
-        # Layer 6: Source Credibility
-        source_verifier = components.get('source_verifier')
-        urls = preprocessor.extract_urls(input_text)
-        target_url = source_url if source_url else (urls[0] if urls else None)
-        source_res = source_verifier.verify_source(target_url) if source_verifier else {"score": 50, "domain": "Unknown"}
+        with st.expander("🛡️ AI Security Audit & Reasons", expanded=True):
+            st.markdown(f"**Summary:** {result['summary']}")
+            if st.button("Clear Report", key=f"clear_report_{nav_name}"):
+                session_manager.clear_analysis_result()
+                st.rerun()
 
-        # Trusted Sources (Layer 2.5)
-        verifier = components.get('verifier')
-        claims = preprocessor.extract_claims(clean_text)
-        trusted_sources = [
-            "Official reports confirm authenticity of the incident.",
-            "Health organizations state that safety protocols were followed.",
-            "Historical records verify the sequence of events."
-        ]
-        verification_res = verifier.verify_claims(claims, trusted_sources) if verifier and claims else []
+def run_full_analysis(input_text, source_type="Text", source_url=None):
+    """Core Analysis Pipeline Runner with Error Handling"""
+    try:
+        # Load ML components dictionary
+        with st.spinner("Initializing AI Engines..."):
+            components_ai = load_ml_components()
+            
+        user = session_manager.get_current_user()
         
-        summarizer = components.get('summarizer')
-        summary = summarizer.generate_summary(clean_text) if summarizer else "Summary unavailable."
-        
-        # Layer 7: Final Weighted Scoring
-        scorer = components.get('scorer')
-        final_score = scorer.calculate_score(
-            ml_score=deberta_res['real_prob'] * 100,
-            keyword_risk_score=ling_res['risk_score'],
-            sentiment_risk_score=bias_res['risk_score'],
-            source_score=source_res['score'],
-            entity_score=entity_res['score']
-        ) if scorer else {"score": 50, "rating": "Unknown", "color": "#94A3B8"}
-        
-        result_bundle = {
-            "text": clean_text[:200] + "...",
-            "full_text": clean_text,
-            "score": final_score,
-            "deberta": deberta_res,
-            "bias": bias_res,
-            "linguistic": ling_res,
-            "source": source_res,
-            "entity": entity_res,
-            "summary": summary,
-            "claims": verification_res,
-            "timestamp": datetime.now(),
-            "source_type": source_type
-        }
-        
-        session_manager.save_analysis_result(result_bundle)
-        
-        if user:
-            db_record = {
-                "user_id": user['id'],
-                "article_text": clean_text,
-                "credibility_score": final_score['score'],
-                "classification": final_score['rating'],
-                "bias_sentiment": bias_res,
+        with st.spinner(f"Running 7-Layer {source_type} Detection Protocol..."):
+            # Layer 1: Preprocessing
+            preprocessor = components_ai.get('preprocessor')
+            if not preprocessor:
+                st.error("Text Preprocessor failed to load.")
+                return None
+
+            clean_text = preprocessor.clean_text(input_text)
+            
+            # Layer 2: Linguistic Analysis (Red-Flags)
+            linguistic_analyzer = components_ai.get('linguistic_analyzer')
+            ling_res = linguistic_analyzer.analyze(clean_text) if linguistic_analyzer else {"risk_score": 0, "linguistic_flags": []}
+            
+            # Layer 3: ML Classification
+            classifier = components_ai.get('classifier')
+            deberta_res = classifier.predict(clean_text) if classifier else {"label": "Neutral", "confidence": 0.5, "fake_prob": 0.5, "real_prob": 0.5}
+            
+            # Layer 4: Sentiment & Bias
+            bias_analyzer = components_ai.get('bias_analyzer')
+            bias_res = bias_analyzer.analyze(clean_text) if bias_analyzer else {"risk_score": 0, "sentiment": "Neutral"}
+            
+            # Layer 5: Entity Verification
+            entities = preprocessor.get_entities(clean_text)
+            entity_verifier = components_ai.get('entity_verifier')
+            entity_res = entity_verifier.verify_entities(entities) if entity_verifier else {"score": 50, "reason": "Entity Verification unavailable"}
+            
+            # Layer 6: Source Credibility
+            source_verifier = components_ai.get('source_verifier')
+            urls = preprocessor.extract_urls(input_text)
+            target_url = source_url if source_url else (urls[0] if urls else None)
+            source_res = source_verifier.verify_source(target_url) if source_verifier else {"score": 50, "domain": "Unknown"}
+
+            # Trusted Sources (Layer 2.5)
+            verifier = components_ai.get('verifier')
+            claims = preprocessor.extract_claims(clean_text)
+            trusted_sources = [
+                "Official reports confirm authenticity of the incident.",
+                "Health organizations state that safety protocols were followed.",
+                "Historical records verify the sequence of events."
+            ]
+            verification_res = verifier.verify_claims(claims, trusted_sources) if verifier and claims else []
+            
+            summarizer = components_ai.get('summarizer')
+            summary = summarizer.generate_summary(clean_text) if summarizer else "Summary unavailable."
+            
+            # Layer 7: Final Weighted Scoring
+            scorer = components_ai.get('scorer')
+            final_score = scorer.calculate_score(
+                ml_score=deberta_res['real_prob'] * 100,
+                keyword_risk_score=ling_res['risk_score'],
+                sentiment_risk_score=bias_res['risk_score'],
+                source_score=source_res['score'],
+                entity_score=entity_res['score']
+            ) if scorer else {"score": 50, "rating": "Unknown", "color": "#94A3B8"}
+            
+            result_bundle = {
+                "text": clean_text[:200] + "...",
+                "full_text": clean_text,
+                "score": final_score,
+                "deberta": deberta_res,
+                "bias": bias_res,
+                "linguistic": ling_res,
+                "source": source_res,
+                "entity": entity_res,
                 "summary": summary,
+                "claims": verification_res,
+                "timestamp": datetime.now(),
                 "source_type": source_type
             }
-            db.save_analysis(db_record)
-        
-        st.session_state.pending_analysis = None
-        st.rerun()
+            
+            session_manager.save_analysis_result(result_bundle)
+            
+            if user:
+                db_record = {
+                    "user_id": user['id'],
+                    "article_text": clean_text,
+                    "credibility_score": final_score['score'],
+                    "classification": final_score['rating'],
+                    "bias_sentiment": bias_res,
+                    "summary": summary,
+                    "source_type": source_type
+                }
+                db.save_analysis(db_record)
+            
+            st.session_state.pending_analysis = None
+            st.rerun()
+            return result_bundle
+            
+    except Exception as e:
+        # Assuming 'logger' is defined elsewhere or using st.error for simplicity
+        # import logging
+        # logger = logging.getLogger(__name__)
+        # logger.error(f"Analysis Pipeline Failure: {e}")
+        st.error(f"Analysis failed: {str(e)}")
+        return None
 
 # --- Modular Dashboard Pages ---
 
@@ -569,6 +602,9 @@ def show_text_analysis_page():
                 run_full_analysis(text_to_analyze, "Text", source_url=source_url)
             else:
                 st.warning("Please provide more content or a valid link.")
+        
+        # PERSISTENT RESULT DISPLAY
+        render_result_card("Text Analysis")
 
 def show_image_analysis_page():
     """Render forensic image tool"""
@@ -599,6 +635,9 @@ def show_image_analysis_page():
                 run_full_analysis(mock_text, "Image", source_url=source_url)
             else:
                 st.warning("Please provide an image file or a link first.")
+        
+        # PERSISTENT RESULT DISPLAY
+        render_result_card("Image Analysis")
 
 def show_video_analysis_page():
     """Render video verification tool"""
@@ -628,6 +667,9 @@ def show_video_analysis_page():
                 run_full_analysis(mock_text, "Video", source_url=source_url)
             else:
                 st.warning("Please provide a video file or a link first.")
+        
+        # PERSISTENT RESULT DISPLAY
+        render_result_card("Video Analysis")
 
 def show_settings_page(user):
     """Render user settings page"""
@@ -717,27 +759,6 @@ def dashboard_page():
             
         elif nav == "⚙️ Settings":
             show_settings_page(user)
-
-        # Result Overlay Logic (Only on Analysis Tabs)
-        if any(x in nav for x in ["Text", "Image", "Video"]):
-            result = session_manager.get_analysis_result()
-            if result:
-                st.markdown("---")
-                st.markdown(f"### 📊 Verification Report: {result['score']['rating']}")
-                
-                c1, c2 = st.columns([1, 2])
-                with c1:
-                    components.credibility_gauge(result['score']['score'])
-                with c2:
-                    st.markdown("#### Detection Signal")
-                    st.markdown(f"<h2 style='color: {result['score']['color']};'>{result['score']['rating']}</h2>", unsafe_allow_html=True)
-                    st.code(f"Confidence: {result['deberta']['real_prob']*100:.1f}%", language=None)
-
-                with st.expander("🛡️ AI Security Audit & Reasons", expanded=True):
-                    st.markdown(f"**Summary:** {result['summary']}")
-                    if st.button("Clear Report", key="clear_report_btn"):
-                        session_manager.clear_analysis_result()
-                        st.rerun()
 
 # --- Main Routing Controller ---
 def main():

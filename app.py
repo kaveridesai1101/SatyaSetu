@@ -434,49 +434,54 @@ def render_result_card(nav_name):
                 st.rerun()
 
 def run_full_analysis(input_text, source_type="Text", source_url=None):
-    """Core Analysis Pipeline Runner with Error Handling"""
+    """Core Analysis Pipeline Runner with Incremental Feedback"""
+    import logging
+    logger = logging.getLogger(__name__)
     try:
-        # Load ML components dictionary
-        with st.spinner("Initializing AI Engines..."):
+        # 1. Initialize Status Tracking
+        status = st.status(f"🚀 Initializing {source_type} Verification Pipeline...", expanded=True)
+        
+        # 2. Sequential Layer Execution with status updates
+        with status:
+            st.write("🔧 Loading AI Engines & Preprocessors...")
             components_ai = load_ml_components()
             
-        user = session_manager.get_current_user()
-        
-        with st.spinner(f"Running 7-Layer {source_type} Detection Protocol..."):
-            # Layer 1: Preprocessing
+            user = session_manager.get_current_user()
+            
+            st.write("📑 Layer 1: Normalizing Content & Cleaning Text...")
             preprocessor = components_ai.get('preprocessor')
             if not preprocessor:
-                st.error("Text Preprocessor failed to load.")
-                return None
-
-            clean_text = preprocessor.clean_text(input_text)
+                st.error("Text Preprocessor failed. Using basic normalization.")
+                clean_text = input_text.strip()
+            else:
+                clean_text = preprocessor.clean_text(input_text)
             
-            # Layer 2: Linguistic Analysis (Red-Flags)
+            st.write("🚩 Layer 2: Scanning for Linguistic Red-Flags...")
             linguistic_analyzer = components_ai.get('linguistic_analyzer')
             ling_res = linguistic_analyzer.analyze(clean_text) if linguistic_analyzer else {"risk_score": 0, "linguistic_flags": []}
             
-            # Layer 3: ML Classification
+            st.write("🤖 Layer 3: Deep Learning Fake News Classification...")
             classifier = components_ai.get('classifier')
             deberta_res = classifier.predict(clean_text) if classifier else {"label": "Neutral", "confidence": 0.5, "fake_prob": 0.5, "real_prob": 0.5}
             
-            # Layer 4: Sentiment & Bias
+            st.write("⚖️ Layer 4: Analyzing Bias & Emotional Intensity...")
             bias_analyzer = components_ai.get('bias_analyzer')
             bias_res = bias_analyzer.analyze(clean_text) if bias_analyzer else {"risk_score": 0, "sentiment": "Neutral"}
             
-            # Layer 5: Entity Verification
-            entities = preprocessor.get_entities(clean_text)
+            st.write("🔍 Layer 5: Verifying Entities & Key Personalities...")
+            entities = preprocessor.get_entities(clean_text) if preprocessor else []
             entity_verifier = components_ai.get('entity_verifier')
             entity_res = entity_verifier.verify_entities(entities) if entity_verifier else {"score": 50, "reason": "Entity Verification unavailable"}
             
-            # Layer 6: Source Credibility
+            st.write("🌐 Layer 6: Auditing Source Credibility & History...")
             source_verifier = components_ai.get('source_verifier')
-            urls = preprocessor.extract_urls(input_text)
+            urls = preprocessor.extract_urls(input_text) if preprocessor else []
             target_url = source_url if source_url else (urls[0] if urls else None)
             source_res = source_verifier.verify_source(target_url) if source_verifier else {"score": 50, "domain": "Unknown"}
 
-            # Trusted Sources (Layer 2.5)
+            st.write("🛡️ Layer 6.5: Cross-Referencing Trusted Sources...")
             verifier = components_ai.get('verifier')
-            claims = preprocessor.extract_claims(clean_text)
+            claims = preprocessor.extract_claims(clean_text) if preprocessor else []
             trusted_sources = [
                 "Official reports confirm authenticity of the incident.",
                 "Health organizations state that safety protocols were followed.",
@@ -484,10 +489,11 @@ def run_full_analysis(input_text, source_type="Text", source_url=None):
             ]
             verification_res = verifier.verify_claims(claims, trusted_sources) if verifier and claims else []
             
+            st.write("📝 Layer 7: Generating Concise Intelligence Summary...")
             summarizer = components_ai.get('summarizer')
             summary = summarizer.generate_summary(clean_text) if summarizer else "Summary unavailable."
             
-            # Layer 7: Final Weighted Scoring
+            st.write("⚖️ Finalizing Weighted Credibility Scoring...")
             scorer = components_ai.get('scorer')
             final_score = scorer.calculate_score(
                 ml_score=deberta_res['real_prob'] * 100,
@@ -526,16 +532,15 @@ def run_full_analysis(input_text, source_type="Text", source_url=None):
                 }
                 db.save_analysis(db_record)
             
+            status.update(label="✅ Verification Complete!", state="complete", expanded=False)
+            
             st.session_state.pending_analysis = None
             st.rerun()
             return result_bundle
             
     except Exception as e:
-        # Assuming 'logger' is defined elsewhere or using st.error for simplicity
-        # import logging
-        # logger = logging.getLogger(__name__)
-        # logger.error(f"Analysis Pipeline Failure: {e}")
-        st.error(f"Analysis failed: {str(e)}")
+        logger.error(f"Analysis Pipeline Failure: {e}")
+        st.error(f"Critical System Timeout or Error: {str(e)}. Please try with a shorter snippet.")
         return None
 
 # --- Modular Dashboard Pages ---

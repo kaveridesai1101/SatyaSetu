@@ -21,8 +21,8 @@ FACTCHECK_API_URL = "https://factchecktools.googleapis.com/v1alpha1/claims:searc
 
 # Model Configuration
 MODEL_CACHE_DIR = os.getenv("MODEL_CACHE_DIR", "./models")
-DEBERTA_MODEL_NAME = "microsoft/deberta-v3-base"
-SBERT_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+DEBERTA_MODEL_NAME = "distilbert-base-uncased" # Lighter than DeBERTa-v3
+SBERT_MODEL_NAME = "sentence-transformers/paraphrase-MiniLM-L3-v2" # Ultra-light
 SPACY_MODEL = "en_core_web_sm"
 
 # Credibility Scoring Weights

@@ -520,167 +520,107 @@ def run_full_analysis(input_text, source_type="Text", source_url=None):
         st.session_state.pending_analysis = None
         st.rerun()
 
-def dashboard_page():
-    user = session_manager.get_current_user()
-    if not user:
-        session_manager.set_page("login")
-        st.rerun()
-        return
+# --- Modular Dashboard Pages ---
 
-    # Sidebar Navigation
-    with st.sidebar:
-        st.markdown(f"### <span class='neon-text'>SatyaSetu</span> AI", unsafe_allow_html=True)
-        st.markdown(f"**Welcome, {user['name']}**")
-        st.markdown("---")
-        
-        nav = st.radio("Navigation", [
-            "🏠 Dashboard Overview",
-            "📄 Text Analysis",
-            "🖼️ Image Analysis",
-            "🎥 Video Analysis",
-            "📜 History",
-            "⚙️ Settings"
-        ], key="sidebar_nav_radio")
-        
-        st.markdown("---")
-        if st.button("Logout", use_container_width=True, key="logout_btn"):
-            session_manager.logout()
-            st.rerun()
+def show_overview_page(user, db):
+    """Render the main security overview dashboard"""
+    st.markdown("## Security Overview")
+    
+    # Dashboard Cards using columns
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("Total Checks", "128", delta="+12")
+    with c2:
+        st.metric("Reliable Content", "85%", delta="+2%")
+    with c3:
+        st.metric("Threats Detected", "12", delta="-4", delta_color="inverse")
+    
+    st.markdown("### Recent Activity")
+    history = db.get_user_history(user['id']) or []
+    if history:
+        for item in history[:3]:
+            st.markdown(f"<div class='glass-card' style='margin-bottom: 10px; padding: 10px;'><b>{item.get('classification')}</b> - {item.get('source_type')} - {item.get('timestamp')}</div>", unsafe_allow_html=True)
+    else:
+        st.info("No recent activity found.")
 
-    # --- Tab Rendering ---
-    # We use st.container() for the main area to help with clearing on rerun
-    main_area = st.container()
+def show_text_analysis_page():
+    """Render text verification tool"""
+    st.markdown("## 📄 Text Verification")
+    
+    with st.spinner("Initializing AI Engines... (May take a moment on first load)"):
+        try:
+            load_ml_components()
+        except Exception as e:
+            st.error(f"Critical Error: AI Engines failed to start. Details: {str(e)}")
 
-    if "Overview" in nav:
-        with main_area:
-            st.markdown("## Security Overview")
-            
-            # Dashboard Cards using columns
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                st.metric("Total Checks", "128", delta="+12")
-            with c2:
-                st.metric("Reliable Content", "85%", delta="+2%")
-            with c3:
-                st.metric("Threats Detected", "12", delta="-4", delta_color="inverse")
-            
-            st.markdown("### Recent Activity")
-            history = db.get_user_history(user['id']) or []
-            if history:
-                for item in history[:3]:
-                    st.markdown(f"<div class='glass-card' style='margin-bottom: 10px; padding: 10px;'><b>{item.get('classification')}</b> - {item.get('source_type')} - {item.get('timestamp')}</div>", unsafe_allow_html=True)
+    with st.container():
+        text_input = st.text_area("Paste news content or social claims:", height=200, placeholder="Verify news integrity...", key="main_text_input")
+        url_input = st.text_input("Source URL (Optional):", placeholder="https://...", key="main_url_input")
+        if st.button("Verify Integrity", type="primary", use_container_width=True, key="btn_text_verify"):
+            if len(text_input) > 50:
+                run_full_analysis(text_input, "Text", source_url=url_input)
             else:
-                st.info("No recent activity found.")
+                st.warning("Please provide more content (minimum 50 characters).")
 
-    elif "Text Analysis" in nav:
-        with main_area:
-            st.markdown("## 📄 Text Verification")
-            
-            # ML components are loaded within the tab to provide specific feedback
-            with st.spinner("Initializing AI Engines... (May take a moment on first load)"):
-                try:
-                    # In a real app, load_ml_components should be fast if cached
-                    load_ml_components()
-                except Exception as e:
-                    st.error(f"Critical Error: AI Engines failed to start. Details: {str(e)}")
+def show_image_analysis_page():
+    """Render forensic image tool"""
+    st.markdown("## 🖼️ Forensic Image Analysis")
+    
+    with st.spinner("Initializing AI Engines..."):
+        load_ml_components()
 
-            with st.container():
-                text_input = st.text_area("Paste news content or social claims:", height=200, placeholder="Verify news integrity...", key="main_text_input")
-                url_input = st.text_input("Source URL (Optional):", placeholder="https://...", key="main_url_input")
-                if st.button("Verify Integrity", type="primary", use_container_width=True, key="btn_text_verify"):
-                    if len(text_input) > 50:
-                        run_full_analysis(text_input, "Text", source_url=url_input)
-                    else:
-                        st.warning("Please provide more content (minimum 50 characters).")
+    with st.container():
+        image_file = st.file_uploader("Upload image for deepfake detection", type=["jpg", "png", "jpeg"], key="img_upload")
+        url_input_img = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_img_input")
+        
+        if image_file:
+            st.image(image_file, use_container_width=True)
+        
+        if st.button("Detect Manipulation", type="primary", use_container_width=True, key="btn_img_verify"):
+            mock_text = "Analysis suggest the uploaded image shows high probability of AI-generated artifacts in facial regions."
+            run_full_analysis(mock_text, "Image", source_url=url_input_img)
 
-    elif "Image Analysis" in nav:
-        with main_area:
-            st.markdown("## 🖼️ Forensic Image Analysis")
-            
-            with st.spinner("Initializing AI Engines..."):
-                load_ml_components()
+def show_video_analysis_page():
+    """Render video verification tool"""
+    st.markdown("## 🎥 Video Deepfake Guard")
+    
+    with st.spinner("Initializing AI Engines..."):
+        load_ml_components()
 
-            with st.container():
-                image_file = st.file_uploader("Upload image for deepfake detection", type=["jpg", "png", "jpeg"], key="img_upload")
-                url_input_img = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_img_input")
-                
-                if image_file:
-                    st.image(image_file, use_container_width=True)
-                
-                if st.button("Detect Manipulation", type="primary", use_container_width=True, key="btn_img_verify"):
-                    mock_text = "Analysis suggest the uploaded image shows high probability of AI-generated artifacts in facial regions."
-                    run_full_analysis(mock_text, "Image", source_url=url_input_img)
+    with st.container():
+        video_file = st.file_uploader("Upload video to verify authenticity", type=["mp4", "mov"], key="vid_upload")
+        url_input_vid = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_vid_input")
+        
+        if video_file:
+            st.info(f"Video selected: {video_file.name}")
+        
+        if st.button("Extract & Verify", type="primary", use_container_width=True, key="btn_vid_verify"):
+            mock_text = "Analyzing video metadata suggests deepfake tampering detected."
+            run_full_analysis(mock_text, "Video", source_url=url_input_vid)
 
-    elif "Video Analysis" in nav:
-        with main_area:
-            st.markdown("## 🎥 Video Deepfake Guard")
-            
-            with st.spinner("Initializing AI Engines..."):
-                load_ml_components()
-
-            with st.container():
-                video_file = st.file_uploader("Upload video to verify authenticity", type=["mp4", "mov"], key="vid_upload")
-                url_input_vid = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_vid_input")
-                
-                if video_file:
-                    st.info(f"Video selected: {video_file.name}")
-                
-                if st.button("Extract & Verify", type="primary", use_container_width=True, key="btn_vid_verify"):
-                    mock_text = "Analyzing video metadata suggests deepfake tampering detected."
-                    run_full_analysis(mock_text, "Video", source_url=url_input_vid)
-
-    elif "History" in nav:
-        with main_area:
-            history_page()
-
-    elif "Settings" in nav:
-        with main_area:
-            st.markdown("## Account Configuration")
-            st.markdown(f"""
-    <div class='glass-card' style='padding: 30px;'>
-    <div style='display: flex; align-items: center; margin-bottom: 25px;'>
-    <div style='background: linear-gradient(135deg, #6366F1, #A855F7); width: 80px; height: 80px; border-radius: 40px; display: flex; align-items: center; justify-content: center; font-size: 35px; color: white; margin-right: 25px;'>
-    {user['name'][0].upper()}
-    </div>
-    <div>
-    <h2 style='margin: 0; font-size: 2rem;'>{user['name']}</h2>
-    <p style='color: #94A3B8; margin: 0;'>Verified Security Professional</p>
-    </div>
-    </div>
-    <div style='border-top: 1px solid rgba(148, 163, 184, 0.1); padding-top: 20px;'>
-    <p style='color: #6366F1; font-weight: 500; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 5px;'>Email Address</p>
-    <p style='font-size: 1.1rem;'>{user['email']}</p>
-    </div>
-    </div>
+def show_settings_page(user):
+    """Render user settings page"""
+    st.markdown("## Account Configuration")
+    st.markdown(f"""
+        <div class='glass-card' style='padding: 30px;'>
+            <div style='display: flex; align-items: center; margin-bottom: 25px;'>
+                <div style='background: linear-gradient(135deg, #6366F1, #A855F7); width: 80px; height: 80px; border-radius: 40px; display: flex; align-items: center; justify-content: center; font-size: 35px; color: white; margin-right: 25px;'>
+                    {user['name'][0].upper()}
+                </div>
+                <div>
+                    <h2 style='margin: 0; font-size: 2rem;'>{user['name']}</h2>
+                    <p style='color: #94A3B8; margin: 0;'>Verified Security Professional</p>
+                </div>
+            </div>
+            <div style='border-top: 1px solid rgba(148, 163, 184, 0.1); padding-top: 20px;'>
+                <p style='color: #6366F1; font-weight: 500; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 5px;'>Email Address</p>
+                <p style='font-size: 1.1rem;'>{user['email']}</p>
+            </div>
+        </div>
     """, unsafe_allow_html=True)
 
-    # Display Results if available
-    result = session_manager.get_analysis_result()
-    if result and any(x in nav for x in ["Text", "Image", "Video"]):
-        with main_area:
-            st.markdown("---")
-            st.markdown(f"### 📊 Verification Report: {result['score']['rating']}")
-            
-            c1, c2 = st.columns([1, 2])
-            with c1:
-                components.credibility_gauge(result['score']['score'])
-            with c2:
-                st.markdown("#### Detection Signal")
-                st.markdown(f"<h2 style='color: {result['score']['color']};'>{result['score']['rating']}</h2>", unsafe_allow_html=True)
-                st.code(f"Confidence: {result['deberta']['real_prob']*100:.1f}%", language=None)
-
-            with st.expander("🛡️ AI Security Audit & Reasons", expanded=True):
-                st.markdown(f"**Summary:** {result['summary']}")
-                if st.button("Clear Report", key="clear_report_btn"):
-                    session_manager.clear_analysis_result()
-                    st.rerun()
-
-def history_page():
-    user = session_manager.get_current_user()
-    if not user:
-        session_manager.set_page("login")
-        st.rerun()
-        
+def show_history_page(user, db):
+    """Render analysis history"""
     st.markdown("### Analysis History")
     history = db.get_user_history(user['id'])
     
@@ -692,20 +632,97 @@ def history_page():
                 st.write(item.get('summary', 'No summary'))
                 st.caption(f"Text Preview: {item.get('article_text')[:100]}...")
 
-# --- Main Routing ---
-from datetime import datetime
+def dashboard_page():
+    """Main dashboard entry point with sidebar navigation"""
+    user = session_manager.get_current_user()
+    if not user:
+        session_manager.set_page("login")
+        st.rerun()
+        return
 
-page = st.session_state.page
+    # Sidebar Navigation - High Priority Isolation
+    with st.sidebar:
+        st.markdown(f"### <span class='neon-text'>SatyaSetu</span> AI", unsafe_allow_html=True)
+        st.markdown(f"**Welcome, {user['name']}**")
+        st.markdown("---")
+        
+        # Use a literal list for navigation to ensure strict mapping
+        nav_options = [
+            "🏠 Dashboard Overview",
+            "📄 Text Analysis",
+            "🖼️ Image Analysis",
+            "🎥 Video Analysis",
+            "📜 History",
+            "⚙️ Settings"
+        ]
+        
+        nav = st.radio("Navigation", nav_options, key="sidebar_nav_radio")
+        
+        st.markdown("---")
+        if st.button("Logout", use_container_width=True, key="logout_btn"):
+            session_manager.logout()
+            st.rerun()
 
-if page == "landing":
-    landing_page()
-elif page == "login":
-    login_page()
-elif page == "signup":
-    signup_page()
-elif page == "dashboard":
-    dashboard_page()
-elif page == "history":
-    history_page()
-else:
-    landing_page()
+    # --- Content Execution Area ---
+    # Using a main_content container to ensure atomic rendering
+    main_content = st.container()
+    
+    with main_content:
+        # Strict Conditional Rendering Pattern
+        if nav == "🏠 Dashboard Overview":
+            show_overview_page(user, db)
+            
+        elif nav == "📄 Text Analysis":
+            show_text_analysis_page()
+            
+        elif nav == "🖼️ Image Analysis":
+            show_image_analysis_page()
+            
+        elif nav == "🎥 Video Analysis":
+            show_video_analysis_page()
+            
+        elif nav == "📜 History":
+            show_history_page(user, db)
+            
+        elif nav == "⚙️ Settings":
+            show_settings_page(user)
+
+        # Result Overlay Logic (Only on Analysis Tabs)
+        if any(x in nav for x in ["Text", "Image", "Video"]):
+            result = session_manager.get_analysis_result()
+            if result:
+                st.markdown("---")
+                st.markdown(f"### 📊 Verification Report: {result['score']['rating']}")
+                
+                c1, c2 = st.columns([1, 2])
+                with c1:
+                    components.credibility_gauge(result['score']['score'])
+                with c2:
+                    st.markdown("#### Detection Signal")
+                    st.markdown(f"<h2 style='color: {result['score']['color']};'>{result['score']['rating']}</h2>", unsafe_allow_html=True)
+                    st.code(f"Confidence: {result['deberta']['real_prob']*100:.1f}%", language=None)
+
+                with st.expander("🛡️ AI Security Audit & Reasons", expanded=True):
+                    st.markdown(f"**Summary:** {result['summary']}")
+                    if st.button("Clear Report", key="clear_report_btn"):
+                        session_manager.clear_analysis_result()
+                        st.rerun()
+
+# --- Main Routing Controller ---
+def main():
+    """Application Router"""
+    page = st.session_state.get("page", "landing")
+
+    if page == "landing":
+        landing_page()
+    elif page == "login":
+        login_page()
+    elif page == "signup":
+        signup_page()
+    elif page == "dashboard":
+        dashboard_page()
+    else:
+        landing_page()
+
+if __name__ == "__main__":
+    main()

@@ -548,33 +548,57 @@ def show_text_analysis_page():
     st.markdown("## 📄 Text Verification")
     
     with st.container():
-        text_input = st.text_area("Paste news content or social claims:", height=200, placeholder="Verify news integrity...", key="main_text_input")
-        url_input = st.text_input("Source URL (Optional):", placeholder="https://...", key="main_url_input")
+        # Input Method Selection
+        input_method = st.radio("Select Input Method", ["Paste Article Text", "Provide Article Link"], horizontal=True, key="text_input_method")
         
+        text_to_analyze = ""
+        source_url = None
+        
+        if input_method == "Paste Article Text":
+            text_to_analyze = st.text_area("Paste news content or social claims:", height=200, placeholder="Verify news integrity...", key="main_text_input")
+            source_url = st.text_input("Source URL (Optional):", placeholder="https://...", key="main_url_input")
+        else:
+            source_url = st.text_input("Article or Social Media Link:", placeholder="https://news-site.com/article...", key="url_text_input_direct")
+            if source_url:
+                st.info(f"Link provided: {source_url}")
+                # Mock extraction for URL mode if no scraper yet
+                text_to_analyze = f"Extracting and verifying content from: {source_url}"
+
         if st.button("Verify Integrity", type="primary", use_container_width=True, key="btn_text_verify"):
-            if len(text_input) > 50:
-                # Actual loading happens here to avoid blocking UI rendering
-                run_full_analysis(text_input, "Text", source_url=url_input)
+            if len(text_to_analyze) > 50 or (input_method == "Provide Article Link" and source_url):
+                run_full_analysis(text_to_analyze, "Text", source_url=source_url)
             else:
-                st.warning("Please provide more content (minimum 50 characters).")
+                st.warning("Please provide more content or a valid link.")
 
 def show_image_analysis_page():
     """Render forensic image tool"""
     st.markdown("## 🖼️ Forensic Image Analysis")
     
     with st.container():
-        image_file = st.file_uploader("Upload image for deepfake detection", type=["jpg", "png", "jpeg"], key="img_upload")
-        url_input_img = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_img_input")
+        # Input Method Selection
+        input_method = st.radio("Select Input Method", ["Upload Image File", "Provide Image Link"], horizontal=True, key="img_input_method")
         
-        if image_file:
-            st.image(image_file, use_container_width=True)
+        image_to_analyze = None
+        source_url = None
         
-        if st.button("Detect Manipulation", type="primary", use_container_width=True, key="btn_img_verify"):
+        if input_method == "Upload Image File":
+            image_file = st.file_uploader("Upload image for deepfake detection", type=["jpg", "png", "jpeg"], key="img_upload")
+            source_url = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_img_input")
             if image_file:
-                mock_text = f"Analyzing image: {image_file.name}. Forensic scan suggests potential manipulation in high-frequency regions."
-                run_full_analysis(mock_text, "Image", source_url=url_input_img)
+                st.image(image_file, use_container_width=True)
+                image_to_analyze = image_file.name
+        else:
+            source_url = st.text_input("Direct Image or Source Link:", placeholder="https://example.com/image.jpg", key="url_img_input_direct")
+            if source_url:
+                st.info(f"Link provided: {source_url}")
+                image_to_analyze = source_url
+
+        if st.button("Detect Manipulation", type="primary", use_container_width=True, key="btn_img_verify"):
+            if image_to_analyze:
+                mock_text = f"Analyzing image content from: {image_to_analyze}. Scanning for AI generation signatures and forensic artifacts..."
+                run_full_analysis(mock_text, "Image", source_url=source_url)
             else:
-                st.warning("Please upload an image first.")
+                st.warning("Please provide an image file or a link first.")
 
 def show_video_analysis_page():
     """Render video verification tool"""

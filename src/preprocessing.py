@@ -12,16 +12,24 @@ logger = get_logger(__name__)
 
 class TextPreprocessor:
     def __init__(self):
-        """Initialize spaCy model"""
-        try:
-            # Try to load the model, download if missing
-            if not spacy.util.is_package(config.SPACY_MODEL):
-                spacy.cli.download(config.SPACY_MODEL)
-            self.nlp = spacy.load(config.SPACY_MODEL)
-            logger.info(f"Loaded spaCy model: {config.SPACY_MODEL}")
-        except Exception as e:
-            logger.error(f"Failed to load spaCy model: {e}")
-            raise RuntimeError("NLP model initialization failed")
+        """Initialize preprocessor (SpaCy is loaded lazily)"""
+        self._nlp = None
+        logger.info("TextPreprocessor initialized (Heuristic-First)")
+
+    @property
+    def nlp(self):
+        """Lazy loader for spaCy to prevent app hanging on first load"""
+        if self._nlp is None:
+            try:
+                import spacy
+                if not spacy.util.is_package(config.SPACY_MODEL):
+                    logger.info(f"Downloading {config.SPACY_MODEL}...")
+                    spacy.cli.download(config.SPACY_MODEL)
+                self._nlp = spacy.load(config.SPACY_MODEL)
+                logger.info("Lazy-loaded spaCy model")
+            except Exception as e:
+                logger.error(f"Failed to lazy-load spaCy: {e}")
+        return self._nlp
 
     def clean_text(self, text: str) -> str:
         """

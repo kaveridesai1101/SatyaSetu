@@ -431,10 +431,13 @@ def run_full_analysis(input_text, source_type="Text", source_url=None, deep_scan
                 st.write("⚖️ Layer 4: Emotional & Bias Audit...")
                 bias_res = components_ai['bias_analyzer'].analyze(clean_text)
             
-            st.write("🔍 Layer 5: Personality & Entity Check...")
-            entity_verifier = components_ai.get('entity_verifier')
-            entities = preprocessor.get_entities(clean_text) if preprocessor else []
-            entity_res = entity_verifier.verify_entities(entities) if entity_verifier else {"score": 50, "reason": "Basic Entity Check"}
+            # Layer 5: Personality & Entity Check (Deep only)
+            entity_res = {"score": 60.0, "reason": "Entity verification available in Deep Scan."}
+            if deep_scan:
+                st.write("🔍 Layer 5: Personality & Entity Check...")
+                entity_verifier = components_ai.get('entity_verifier')
+                entities = preprocessor.get_entities(clean_text) if preprocessor else []
+                entity_res = entity_verifier.verify_entities(entities) if entity_verifier else {"score": 50, "reason": "Entity Verifier skipped."}
             
             st.write("🌐 Layer 6: Source & Domain Audit...")
             source_verifier = components_ai.get('source_verifier')

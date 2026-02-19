@@ -495,6 +495,7 @@ def run_full_analysis(input_text, source_type="Text", source_url=None, deep_scan
                 db.save_analysis(db_record)
             
             status.update(label=f"✅ {status_label} Complete!", state="complete", expanded=False)
+            st.session_state.pending_analysis = None
             st.rerun()
             return result_bundle
             

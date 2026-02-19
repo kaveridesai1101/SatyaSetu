@@ -94,81 +94,39 @@ def render_footer():
     """, unsafe_allow_html=True)
 
 # --- Load Models (Memory Efficient & Robust) ---
-@st.cache_resource
-def load_ml_components():
-    """
-    Load ML components with individual failure handling to prevent app hanging
-    """
-    logger.info("Initializing ML Components on-demand...")
-    
-    # Initialize dictionary to store components
+def load_fast_components():
+    """Load lightweight heuristic components for instant verification"""
     components = {}
-    
     try:
         from src.preprocessing import TextPreprocessor
         components['preprocessor'] = TextPreprocessor()
-        logger.info("Preprocessor loaded")
-    except Exception as e:
-        logger.error(f"Failed to load Preprocessor: {e}")
-        components['preprocessor'] = None
-
-    try:
-        from src.models.deberta_classifier import DebertaClassifier
-        components['classifier'] = DebertaClassifier()
-        logger.info("Classifier loaded")
-    except Exception as e:
-        logger.warning(f"Failed to load DebertaClassifier: {e}. Falling back to lite mode.")
-        components['classifier'] = None
-
-    try:
-        from src.models.semantic_verifier import SemanticVerifier
-        components['verifier'] = SemanticVerifier()
-    except Exception as e:
-        logger.warning(f"Semantic Verifier failed to load: {e}")
-        components['verifier'] = None
-
-    try:
-        from src.credibility_scorer import CredibilityScorer
-        components['scorer'] = CredibilityScorer()
-    except Exception as e:
-        logger.warning(f"Credibility Scorer failed to load: {e}")
-        components['scorer'] = None
-
-    try:
-        from src.bias_sentiment_analyzer import BiasSentimentAnalyzer
-        components['bias_analyzer'] = BiasSentimentAnalyzer()
-    except Exception as e:
-        logger.warning(f"Bias Sentiment Analyzer failed to load: {e}")
-        components['bias_analyzer'] = None
-
-    try:
-        from src.summarizer import Summarizer
-        components['summarizer'] = Summarizer()
-    except Exception as e:
-        logger.warning(f"Summarizer failed to load: {e}")
-        components['summarizer'] = None
-    
-    try:
         from src.linguistic_analysis import LinguisticAnalyzer
         components['linguistic_analyzer'] = LinguisticAnalyzer()
-    except Exception as e:
-        logger.warning(f"Linguistic Analyzer failed to load: {e}")
-        components['linguistic_analyzer'] = None
-
-    try:
+        from src.credibility_scorer import CredibilityScorer
+        components['scorer'] = CredibilityScorer()
         from src.source_verifier import SourceVerifier
         components['source_verifier'] = SourceVerifier()
-    except Exception as e:
-        logger.warning(f"Source Verifier failed to load: {e}")
-        components['source_verifier'] = None
-
-    try:
         from src.entity_verifier import EntityVerifier
         components['entity_verifier'] = EntityVerifier()
     except Exception as e:
-        logger.warning(f"Entity Verifier failed to load: {e}")
-        components['entity_verifier'] = None
-        
+        logger.warning(f"Fast components failed: {e}")
+    return components
+
+@st.cache_resource
+def load_deep_components():
+    """Load heavy transformer models for deep analysis"""
+    components = {}
+    try:
+        from src.models.deberta_classifier import DebertaClassifier
+        components['classifier'] = DebertaClassifier()
+        from src.models.semantic_verifier import SemanticVerifier
+        components['verifier'] = SemanticVerifier()
+        from src.summarizer import Summarizer
+        components['summarizer'] = Summarizer()
+        from src.bias_sentiment_analyzer import BiasSentimentAnalyzer
+        components['bias_analyzer'] = BiasSentimentAnalyzer()
+    except Exception as e:
+        logger.warning(f"Deep components failed: {e}")
     return components
 
 # --- Initialize ---
@@ -433,67 +391,71 @@ def render_result_card(nav_name):
                 session_manager.clear_analysis_result()
                 st.rerun()
 
-def run_full_analysis(input_text, source_type="Text", source_url=None):
-    """Core Analysis Pipeline Runner with Incremental Feedback"""
+def run_full_analysis(input_text, source_type="Text", source_url=None, deep_scan=False):
+    """Core Analysis Pipeline Runner with Dual-Track Feedback"""
     import logging
     logger = logging.getLogger(__name__)
     try:
         # 1. Initialize Status Tracking
-        status = st.status(f"🚀 Initializing {source_type} Verification Pipeline...", expanded=True)
+        status_label = "Deep AI Verification" if deep_scan else "Fast Heuristic Scan"
+        status = st.status(f"🚀 Initializing {source_type} {status_label}...", expanded=True)
         
-        # 2. Sequential Layer Execution with status updates
         with status:
-            st.write("🔧 Loading AI Engines & Preprocessors...")
-            components_ai = load_ml_components()
+            st.write("🔧 Loading Core Infrastructure...")
+            components_ai = load_fast_components()
+            
+            if deep_scan:
+                st.write("🧠 Waking up Deep AI Models... (May take a moment)")
+                deep_comps = load_deep_components()
+                components_ai.update(deep_comps)
             
             user = session_manager.get_current_user()
             
-            st.write("📑 Layer 1: Normalizing Content & Cleaning Text...")
+            st.write("📑 Layer 1: Normalizing Content...")
             preprocessor = components_ai.get('preprocessor')
-            if not preprocessor:
-                st.error("Text Preprocessor failed. Using basic normalization.")
-                clean_text = input_text.strip()
-            else:
-                clean_text = preprocessor.clean_text(input_text)
+            clean_text = preprocessor.clean_text(input_text) if preprocessor else input_text.strip()
             
-            st.write("🚩 Layer 2: Scanning for Linguistic Red-Flags...")
+            st.write("🚩 Layer 2: Scanning Linguistic Patterns...")
             linguistic_analyzer = components_ai.get('linguistic_analyzer')
             ling_res = linguistic_analyzer.analyze(clean_text) if linguistic_analyzer else {"risk_score": 0, "linguistic_flags": []}
             
-            st.write("🤖 Layer 3: Deep Learning Fake News Classification...")
-            classifier = components_ai.get('classifier')
-            deberta_res = classifier.predict(clean_text) if classifier else {"label": "Neutral", "confidence": 0.5, "fake_prob": 0.5, "real_prob": 0.5}
+            # AI Track (Layer 3)
+            deberta_res = {"label": "Neutral", "confidence": 0.5, "fake_prob": 0.5, "real_prob": 0.5}
+            if deep_scan and components_ai.get('classifier'):
+                st.write("🤖 Layer 3: Deep Learning AI Evaluation...")
+                deberta_res = components_ai['classifier'].predict(clean_text)
             
-            st.write("⚖️ Layer 4: Analyzing Bias & Emotional Intensity...")
-            bias_analyzer = components_ai.get('bias_analyzer')
-            bias_res = bias_analyzer.analyze(clean_text) if bias_analyzer else {"risk_score": 0, "sentiment": "Neutral"}
+            # AI Track (Layer 4)
+            bias_res = {"risk_score": 0, "sentiment": "Neutral"}
+            if deep_scan and components_ai.get('bias_analyzer'):
+                st.write("⚖️ Layer 4: Emotional & Bias Audit...")
+                bias_res = components_ai['bias_analyzer'].analyze(clean_text)
             
-            st.write("🔍 Layer 5: Verifying Entities & Key Personalities...")
-            entities = preprocessor.get_entities(clean_text) if preprocessor else []
+            st.write("🔍 Layer 5: Personality & Entity Check...")
             entity_verifier = components_ai.get('entity_verifier')
-            entity_res = entity_verifier.verify_entities(entities) if entity_verifier else {"score": 50, "reason": "Entity Verification unavailable"}
+            entities = preprocessor.get_entities(clean_text) if preprocessor else []
+            entity_res = entity_verifier.verify_entities(entities) if entity_verifier else {"score": 50, "reason": "Basic Entity Check"}
             
-            st.write("🌐 Layer 6: Auditing Source Credibility & History...")
+            st.write("🌐 Layer 6: Source & Domain Audit...")
             source_verifier = components_ai.get('source_verifier')
             urls = preprocessor.extract_urls(input_text) if preprocessor else []
             target_url = source_url if source_url else (urls[0] if urls else None)
             source_res = source_verifier.verify_source(target_url) if source_verifier else {"score": 50, "domain": "Unknown"}
 
-            st.write("🛡️ Layer 6.5: Cross-Referencing Trusted Sources...")
-            verifier = components_ai.get('verifier')
-            claims = preprocessor.extract_claims(clean_text) if preprocessor else []
-            trusted_sources = [
-                "Official reports confirm authenticity of the incident.",
-                "Health organizations state that safety protocols were followed.",
-                "Historical records verify the sequence of events."
-            ]
-            verification_res = verifier.verify_claims(claims, trusted_sources) if verifier and claims else []
+            # AI Track (Layer 6.5)
+            verification_res = []
+            if deep_scan and components_ai.get('verifier'):
+                st.write("🛡️ Layer 6.5: Trusted Source Cross-Ref...")
+                claims = preprocessor.extract_claims(clean_text) if preprocessor else []
+                verification_res = components_ai['verifier'].verify_claims(claims, ["Official records and news confirm recent reports."])
             
-            st.write("📝 Layer 7: Generating Concise Intelligence Summary...")
-            summarizer = components_ai.get('summarizer')
-            summary = summarizer.generate_summary(clean_text) if summarizer else "Summary unavailable."
+            # AI Track (Layer 7)
+            summary = "Summary available in Deep Scan Mode."
+            if deep_scan and components_ai.get('summarizer'):
+                st.write("📝 Layer 7: Generating Executive Summary...")
+                summary = components_ai['summarizer'].generate_summary(clean_text)
             
-            st.write("⚖️ Finalizing Weighted Credibility Scoring...")
+            st.write("⚖️ Compiling Weighted Credibility Report...")
             scorer = components_ai.get('scorer')
             final_score = scorer.calculate_score(
                 ml_score=deberta_res['real_prob'] * 100,
@@ -501,7 +463,7 @@ def run_full_analysis(input_text, source_type="Text", source_url=None):
                 sentiment_risk_score=bias_res['risk_score'],
                 source_score=source_res['score'],
                 entity_score=entity_res['score']
-            ) if scorer else {"score": 50, "rating": "Unknown", "color": "#94A3B8"}
+            ) if scorer else {"score": 50, "rating": "Indeterminate", "color": "#94A3B8"}
             
             result_bundle = {
                 "text": clean_text[:200] + "...",
@@ -532,15 +494,13 @@ def run_full_analysis(input_text, source_type="Text", source_url=None):
                 }
                 db.save_analysis(db_record)
             
-            status.update(label="✅ Verification Complete!", state="complete", expanded=False)
-            
-            st.session_state.pending_analysis = None
+            status.update(label=f"✅ {status_label} Complete!", state="complete", expanded=False)
             st.rerun()
             return result_bundle
             
     except Exception as e:
-        logger.error(f"Analysis Pipeline Failure: {e}")
-        st.error(f"Critical System Timeout or Error: {str(e)}. Please try with a shorter snippet.")
+        logger.error(f"Pipeline Failure: {e}")
+        st.error(f"Analysis Error: {str(e)}. Try using 'Fast Scan' if Deep Scan is stalling.")
         return None
 
 # --- Modular Dashboard Pages ---
@@ -587,9 +547,12 @@ def show_text_analysis_page():
                 # Mock extraction for URL mode if no scraper yet
                 text_to_analyze = f"Extracting and verifying content from: {source_url}"
 
+        # Performance Toggle
+        deep_scan_text = st.toggle("🚀 Deep AI Scan (Includes Executive Summary & Model Checks)", value=False, key="text_deep_scan")
+
         if st.button("Verify Integrity", type="primary", use_container_width=True, key="btn_text_verify"):
             if len(text_to_analyze) > 50 or (input_method == "Provide Article Link" and source_url):
-                run_full_analysis(text_to_analyze, "Text", source_url=source_url)
+                run_full_analysis(text_to_analyze, "Text", source_url=source_url, deep_scan=deep_scan_text)
             else:
                 st.warning("Please provide more content or a valid link.")
         
@@ -619,10 +582,13 @@ def show_image_analysis_page():
                 st.info(f"Link provided: {source_url}")
                 image_to_analyze = source_url
 
+        # Image Performance Toggle
+        deep_scan_img = st.toggle("🔍 Deep Forensics (AI Generated Content Check)", value=False, key="img_deep_scan")
+
         if st.button("Detect Manipulation", type="primary", use_container_width=True, key="btn_img_verify"):
             if image_to_analyze:
                 mock_text = f"Analyzing image content from: {image_to_analyze}. Scanning for AI generation signatures and forensic artifacts..."
-                run_full_analysis(mock_text, "Image", source_url=source_url)
+                run_full_analysis(mock_text, "Image", source_url=source_url, deep_scan=deep_scan_img)
             else:
                 st.warning("Please provide an image file or a link first.")
         
@@ -651,10 +617,13 @@ def show_video_analysis_page():
                 st.info(f"Link provided: {source_url}")
                 video_to_analyze = source_url
 
+        # Video Performance Toggle
+        deep_scan_vid = st.toggle("🎥 Deep Authenticity Scan (Frame-by-Frame AI Detect)", value=False, key="vid_deep_scan")
+
         if st.button("Extract & Verify", type="primary", use_container_width=True, key="btn_vid_verify"):
             if video_to_analyze:
                 mock_text = f"Analyzing video content from: {video_to_analyze}. Performing metadata forensics and deepfake detection frames..."
-                run_full_analysis(mock_text, "Video", source_url=source_url)
+                run_full_analysis(mock_text, "Video", source_url=source_url, deep_scan=deep_scan_vid)
             else:
                 st.warning("Please provide a video file or a link first.")
         

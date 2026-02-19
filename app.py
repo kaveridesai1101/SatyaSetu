@@ -547,17 +547,13 @@ def show_text_analysis_page():
     """Render text verification tool"""
     st.markdown("## 📄 Text Verification")
     
-    with st.spinner("Initializing AI Engines... (May take a moment on first load)"):
-        try:
-            load_ml_components()
-        except Exception as e:
-            st.error(f"Critical Error: AI Engines failed to start. Details: {str(e)}")
-
     with st.container():
         text_input = st.text_area("Paste news content or social claims:", height=200, placeholder="Verify news integrity...", key="main_text_input")
         url_input = st.text_input("Source URL (Optional):", placeholder="https://...", key="main_url_input")
+        
         if st.button("Verify Integrity", type="primary", use_container_width=True, key="btn_text_verify"):
             if len(text_input) > 50:
+                # Actual loading happens here to avoid blocking UI rendering
                 run_full_analysis(text_input, "Text", source_url=url_input)
             else:
                 st.warning("Please provide more content (minimum 50 characters).")
@@ -566,9 +562,6 @@ def show_image_analysis_page():
     """Render forensic image tool"""
     st.markdown("## 🖼️ Forensic Image Analysis")
     
-    with st.spinner("Initializing AI Engines..."):
-        load_ml_components()
-
     with st.container():
         image_file = st.file_uploader("Upload image for deepfake detection", type=["jpg", "png", "jpeg"], key="img_upload")
         url_input_img = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_img_input")
@@ -577,16 +570,16 @@ def show_image_analysis_page():
             st.image(image_file, use_container_width=True)
         
         if st.button("Detect Manipulation", type="primary", use_container_width=True, key="btn_img_verify"):
-            mock_text = "Analysis suggest the uploaded image shows high probability of AI-generated artifacts in facial regions."
-            run_full_analysis(mock_text, "Image", source_url=url_input_img)
+            if image_file:
+                mock_text = f"Analyzing image: {image_file.name}. Forensic scan suggests potential manipulation in high-frequency regions."
+                run_full_analysis(mock_text, "Image", source_url=url_input_img)
+            else:
+                st.warning("Please upload an image first.")
 
 def show_video_analysis_page():
     """Render video verification tool"""
     st.markdown("## 🎥 Video Deepfake Guard")
     
-    with st.spinner("Initializing AI Engines..."):
-        load_ml_components()
-
     with st.container():
         video_file = st.file_uploader("Upload video to verify authenticity", type=["mp4", "mov"], key="vid_upload")
         url_input_vid = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_vid_input")
@@ -595,8 +588,11 @@ def show_video_analysis_page():
             st.info(f"Video selected: {video_file.name}")
         
         if st.button("Extract & Verify", type="primary", use_container_width=True, key="btn_vid_verify"):
-            mock_text = "Analyzing video metadata suggests deepfake tampering detected."
-            run_full_analysis(mock_text, "Video", source_url=url_input_vid)
+            if video_file:
+                mock_text = f"Analyzing video: {video_file.name}. Metadata scan indicates possible deepfake tampering."
+                run_full_analysis(mock_text, "Video", source_url=url_input_vid)
+            else:
+                st.warning("Please upload a video first.")
 
 def show_settings_page(user):
     """Render user settings page"""

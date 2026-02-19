@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 
 class Summarizer:
     def __init__(self):
-        self.model_name = "sshleifer/distilbart-cnn-12-6" # Faster than full BART
+        self.model_name = "sshleifer/distilbart-cnn-6-6" # Ultra-fast distillation
         self.pipeline = None
         self._load_model()
         

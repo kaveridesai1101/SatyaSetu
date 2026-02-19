@@ -169,21 +169,6 @@ def load_ml_components():
         logger.warning(f"Entity Verifier failed to load: {e}")
         components['entity_verifier'] = None
         
-    try:
-        from src.explainability import ExplainabilityEngine
-        if components.get('classifier'):
-            components['explainer'] = ExplainabilityEngine(
-                components['classifier'].get_model(), 
-                components['classifier'].get_tokenizer()
-            )
-            logger.info("Explainability Engine loaded")
-        else:
-            components['explainer'] = None
-            logger.warning("Explainability Engine not loaded: Classifier not available.")
-    except Exception as e:
-        components['explainer'] = None
-        logger.warning(f"Explainability Engine failed to load: {e}")
-    
     return components
 
 # --- Initialize ---

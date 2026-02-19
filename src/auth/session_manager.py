@@ -32,9 +32,12 @@ def init_session_state(cookie_manager=None):
 
     if "pending_analysis" not in st.session_state:
         st.session_state.pending_analysis = None
+        
+    if "logout_triggered" not in st.session_state:
+        st.session_state.logout_triggered = False
 
-    # Handle Auto-Login from Cookies
-    if cookie_manager and not st.session_state.authenticated:
+    # Handle Auto-Login from Cookies (if not currently logging out)
+    if cookie_manager and not st.session_state.authenticated and not st.session_state.logout_triggered:
         token = cookie_manager.get("satya_session_token")
         if token:
             try:
@@ -69,6 +72,8 @@ def login(user_data: dict, cookie_manager=None):
     st.session_state.login_time = datetime.now()
     st.session_state.page = "dashboard"
 
+    st.session_state.logout_triggered = False
+
     if cookie_manager:
         # Set persistent session cookie (30 days)
         cookie_manager.set("satya_session_token", user_data['id'], key="set_login_cookie")
@@ -80,6 +85,8 @@ def logout(cookie_manager=None):
     st.session_state.login_time = None
     st.session_state.analysis_result = None
     st.session_state.page = "landing"
+    
+    st.session_state.logout_triggered = True
     
     if cookie_manager:
         cookie_manager.delete("satya_session_token", key="delete_logout_cookie")

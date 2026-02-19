@@ -13,6 +13,7 @@ from src.auth import authentication, session_manager
 from src.ui import components
 from src.utils.logger import get_logger
 from src.integrations.mongodb_handler import MongoDBHandler
+import extra_streamlit_components as pyc
 
 # --- Setup ---
 st.set_page_config(
@@ -130,8 +131,11 @@ def load_deep_components():
         logger.warning(f"Deep components failed: {e}")
     return components
 
-# --- Initialize ---
-session_manager.init_session_state()
+# --- Initialize Cookie Manager ---
+cookie_manager = pyc.CookieManager()
+
+# --- Initialize Session State ---
+session_manager.init_session_state(cookie_manager)
 
 # Handle Navigation via Query Params (for HTML buttons)
 if "nav" in st.query_params:
@@ -287,7 +291,7 @@ def login_page():
                 if verify_submit:
                     success, msg = auth.verify_otp(st.session_state.pending_user['email'], otp_code)
                     if success:
-                        session_manager.login(st.session_state.pending_user)
+                        session_manager.login(st.session_state.pending_user, cookie_manager)
                         st.session_state.show_otp = False
                         st.session_state.pending_user = None
                         
@@ -697,7 +701,7 @@ def dashboard_page():
         
         st.markdown("---")
         if st.button("Logout", use_container_width=True, key="logout_btn"):
-            session_manager.logout()
+            session_manager.logout(cookie_manager)
             st.rerun()
 
     # --- Content Execution Area ---

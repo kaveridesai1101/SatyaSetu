@@ -7,8 +7,8 @@ import streamlit as st
 from datetime import datetime, timedelta
 from typing import Optional
 
-def init_session_state():
-    """Initialize session state variables"""
+def init_session_state(cookie_manager=None):
+    """Initialize session state variables and handle auto-login from cookies"""
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
     
@@ -33,24 +33,56 @@ def init_session_state():
     if "pending_analysis" not in st.session_state:
         st.session_state.pending_analysis = None
 
+    # Handle Auto-Login from Cookies
+    if cookie_manager and not st.session_state.authenticated:
+        token = cookie_manager.get("satya_session_token")
+        if token:
+            try:
+                from src.integrations.mongodb_handler import MongoDBHandler
+                db = MongoDBHandler()
+                # Find user by session token or ID stored in token
+                user = db.get_user_by_id(token) # Simplified: token is user ID for now
+                if user:
+                    user_data = {
+                        "id": str(user["_id"]),
+                        "name": user["name"],
+                        "email": user["email"]
+                    }
+                    # Silent login
+                    st.session_state.authenticated = True
+                    st.session_state.user = user_data
+                    st.session_state.login_time = datetime.now()
+                    if st.session_state.page == "landing":
+                        st.session_state.page = "dashboard"
+                    st.rerun()
+            except Exception as e:
+                print(f"Auto-login failed: {e}")
+
 def set_page(page_name: str):
     """Set the current page"""
     st.session_state.page = page_name
 
-def login(user_data: dict):
-    """Log in a user"""
+def login(user_data: dict, cookie_manager=None):
+    """Log in a user and set persistent cookie"""
     st.session_state.authenticated = True
     st.session_state.user = user_data
     st.session_state.login_time = datetime.now()
     st.session_state.page = "dashboard"
 
-def logout():
-    """Log out the current user"""
+    if cookie_manager:
+        # Set persistent session cookie (30 days)
+        cookie_manager.set("satya_session_token", user_data['id'], key="set_login_cookie")
+
+def logout(cookie_manager=None):
+    """Log out the current user and clear cookies"""
     st.session_state.authenticated = False
     st.session_state.user = None
     st.session_state.login_time = None
     st.session_state.analysis_result = None
     st.session_state.page = "landing"
+    
+    if cookie_manager:
+        cookie_manager.delete("satya_session_token", key="delete_logout_cookie")
 
 def is_authenticated() -> bool:
     """Check if user is authenticated"""

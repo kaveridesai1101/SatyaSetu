@@ -18,3 +18,4 @@ tiktoken
 sentencepiece
 protobuf
 textstat
+extra-streamlit-components

@@ -581,18 +581,29 @@ def show_video_analysis_page():
     st.markdown("## 🎥 Video Deepfake Guard")
     
     with st.container():
-        video_file = st.file_uploader("Upload video to verify authenticity", type=["mp4", "mov"], key="vid_upload")
-        url_input_vid = st.text_input("Source URL (Optional):", placeholder="https://...", key="url_vid_input")
+        # Input Method Selection
+        input_method = st.radio("Select Input Method", ["Upload Video File", "Provide Video Link"], horizontal=True, key="vid_input_method")
         
-        if video_file:
-            st.info(f"Video selected: {video_file.name}")
+        video_to_analyze = None
+        source_url = None
         
-        if st.button("Extract & Verify", type="primary", use_container_width=True, key="btn_vid_verify"):
+        if input_method == "Upload Video File":
+            video_file = st.file_uploader("Upload video to verify authenticity", type=["mp4", "mov", "avi"], key="vid_upload")
             if video_file:
-                mock_text = f"Analyzing video: {video_file.name}. Metadata scan indicates possible deepfake tampering."
-                run_full_analysis(mock_text, "Video", source_url=url_input_vid)
+                st.info(f"Video selected: {video_file.name}")
+                video_to_analyze = video_file.name
+        else:
+            source_url = st.text_input("YouTube, News, or Direct Video Link:", placeholder="https://www.youtube.com/watch?v=...", key="url_vid_input_direct")
+            if source_url:
+                st.info(f"Link provided: {source_url}")
+                video_to_analyze = source_url
+
+        if st.button("Extract & Verify", type="primary", use_container_width=True, key="btn_vid_verify"):
+            if video_to_analyze:
+                mock_text = f"Analyzing video content from: {video_to_analyze}. Performing metadata forensics and deepfake detection frames..."
+                run_full_analysis(mock_text, "Video", source_url=source_url)
             else:
-                st.warning("Please upload a video first.")
+                st.warning("Please provide a video file or a link first.")
 
 def show_settings_page(user):
     """Render user settings page"""

@@ -1,8 +1,8 @@
-# 🛡️ VeriSense – Smart Fake News Detector
+# 🛡️ SatyaSetu– Smart Fake News Detector
 
 > **Check credibility. Understand truth. Think critically.**
 
-VeriSense is an AI-powered verification platform designed to help students and researchers identify fake news, assess article credibility, and detect bias using state-of-the-art Machine Learning models.
+SatyaSetu is an AI-powered verification platform designed to help students and researchers identify fake news, assess article credibility, and detect bias using state-of-the-art Machine Learning models.
 
 ## 🚀 Key Features
 
